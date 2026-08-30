@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Sidebar from "@/components/Sidebar";
-import { apiGet, getAccessToken } from "@/lib/api";
+import { apiGet, getAccessToken, API_ROOT } from "@/lib/api";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 import { Send, Mic, Square, Code2, MessageSquare, Lightbulb } from "lucide-react";
 
@@ -42,7 +42,7 @@ export default function ChatPage() {
 
   async function stream(endpoint: string, body: object) {
     const token = getAccessToken();
-    const res = await fetch(`http://localhost:8000${endpoint}`, {
+    const res = await fetch(`${API_ROOT}${endpoint}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
       body: JSON.stringify(body),
@@ -75,7 +75,7 @@ export default function ChatPage() {
     const endpoint = code ? "/api/v1/chat/code" : "/api/v1/chat/message";
     const reqBody = code ? { message: text, code } : { message: text };
     try {
-      const res = await fetch(`http://localhost:8000${endpoint}`, {
+      const res = await fetch(`${API_ROOT}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(tkn ? { Authorization: `Bearer ${tkn}` } : {}) },
         body: JSON.stringify(reqBody),
@@ -114,7 +114,7 @@ export default function ChatPage() {
         const token = getAccessToken();
         const fd = new FormData(); fd.append("file", blob, "voice.webm");
         try {
-          const res = await fetch("http://localhost:8000/api/v1/chat/voice", {
+          const res = await fetch(`${API_ROOT}/api/v1/chat/voice`, {
             method: "POST", headers: token ? { Authorization: `Bearer ${token}` } : {}, body: fd,
           });
           if (!res.body) return;

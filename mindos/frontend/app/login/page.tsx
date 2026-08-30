@@ -2,7 +2,7 @@
 import { useState, FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { setTokens } from "@/lib/api";
+import { setTokens, API_BASE } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,7 +15,7 @@ export default function LoginPage() {
     e.preventDefault();
     setError(""); setLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/api/v1/auth/login", {
+      const res = await fetch(`${API_BASE}/auth/login`, {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });

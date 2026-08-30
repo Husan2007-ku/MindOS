@@ -10,7 +10,7 @@ export default function ForgotPasswordPage() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault(); setLoading(true);
     try {
-      await fetch("http://localhost:8000/api/v1/auth/forgot-password", {
+      await fetch(`${API_BASE}/auth/forgot-password`, {
         method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({email}),
       });
     } finally { setLoading(false); setSent(true); }
@@ -45,3 +45,5 @@ export default function ForgotPasswordPage() {
     </main>
   );
 }
+
+import { API_BASE } from "@/lib/api";

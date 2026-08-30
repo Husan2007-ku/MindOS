@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { setTokens } from "@/lib/api";
+import { setTokens, API_BASE } from "@/lib/api";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -15,7 +15,7 @@ export default function RegisterPage() {
   async function handleSubmit() {
     setError(""); setLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/api/v1/auth/register", {
+      const res = await fetch(`${API_BASE}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, full_name: fullName, lang: "uz" }),

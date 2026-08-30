@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { getAccessToken } from "@/lib/api";
+import { getAccessToken, API_BASE } from "@/lib/api";
 import { Check, Zap } from "lucide-react";
 
 const PLANS=[
@@ -20,7 +20,7 @@ export default function PricingPage() {
     if(!token){window.location.href=`/register?plan=${planId}`;return;}
     setLoading(planId);
     try {
-      const res=await fetch("http://localhost:8000/api/v1/subscription/checkout",{
+      const res=await fetch(`${API_BASE}/subscription/checkout`,{
         method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${token}`},
         body:JSON.stringify({plan:planId,success_url:`${window.location.origin}/dashboard`,cancel_url:`${window.location.origin}/pricing`}),
       });

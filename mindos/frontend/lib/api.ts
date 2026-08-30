@@ -1,6 +1,9 @@
 // Production'da Vercel muhit o'zgaruvchisi orqali sozlanadi (masalan: https://api.mindos.uz/api/v1).
 // Sozlanmasa — lokal development uchun localhost fallback ishlatiladi.
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000/api/v1";
+// Ba'zi sahifalar to'liq domensiz endpoint (masalan "/api/v1/chat/message") bilan ishlaydi —
+// ular uchun /api/v1 qismisiz "ildiz" manzil.
+export const API_ROOT = API_BASE.replace(/\/api\/v1\/?$/, "");
 
 class ApiError extends Error {
   status: number;
@@ -78,4 +81,4 @@ export const apiPost = (path: string, body?: unknown, opts?: Opts) => apiFetch(p
 export const apiPut = (path: string, body?: unknown, opts?: Opts) => apiFetch(path, { method: "PUT", body: body !== undefined ? JSON.stringify(body) : undefined, ...opts });
 export const apiDelete = (path: string, opts?: Opts) => apiFetch(path, { method: "DELETE", ...opts });
 
-export { ApiError, getAccessToken };
+export { ApiError, getAccessToken, API_BASE };

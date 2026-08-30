@@ -2,7 +2,7 @@
 import { useState, FormEvent, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-import { setTokens } from "@/lib/api";
+import { setTokens, API_BASE } from "@/lib/api";
 
 function ResetForm() {
   const router = useRouter();
@@ -20,7 +20,7 @@ function ResetForm() {
     if (password!==confirm){setError("Parollar mos kelmadi");return;}
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/api/v1/auth/reset-password", {
+      const res = await fetch(`${API_BASE}/auth/reset-password`, {
         method:"POST", headers:{"Content-Type":"application/json"},
         body:JSON.stringify({reset_token:token, new_password:password}),
       });

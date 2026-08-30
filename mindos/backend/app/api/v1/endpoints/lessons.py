@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from datetime import datetime, timezone
 
 from app.core.database import get_db
@@ -29,7 +29,25 @@ async def get_today_lesson(
     )
     lesson = result.scalar_one_or_none()
     if not lesson:
-        return {"lesson": None, "message": "Bugun uchun dars yo'q. Zo'r, hammasi tugallangan!"}
+        # "Hech qanday kutilayotgan dars yo'q" ikki xil holatni anglatishi mumkin:
+        # (1) AI hali reja generatsiya qilib bo'lmagan (curriculum yaratilgan, lekin
+        #     hali bitta ham Lesson qatori yo'q) yoki (2) foydalanuvchi haqiqatan ham
+        #     bor darslarning barchasini tugatgan. Bu ikkisini adashtirish frontendda
+        #     "hammasi tugallangan" degan noto'g'ri xabarni ko'rsatib yuborardi, aslida
+        #     reja hali tayyor bo'lmagan bo'lsa ham.
+        total_result = await db.execute(
+            select(func.count(Lesson.id))
+            .join(Curriculum)
+            .where(Curriculum.user_id == current_user.id, Curriculum.status == "active")
+        )
+        total_lessons = total_result.scalar() or 0
+        if total_lessons == 0:
+            return {
+                "lesson": None,
+                "generating": True,
+                "message": "Shaxsiy o'quv rejangiz tayyorlanmoqda, biroz kuting...",
+            }
+        return {"lesson": None, "generating": False, "message": "Bugun uchun dars yo'q. Zo'r, hammasi tugallangan!"}
 
     return {
         "lesson": {
@@ -39,7 +57,8 @@ async def get_today_lesson(
             "title": lesson.title,
             "content": lesson.content,
             "status": lesson.status,
-        }
+        },
+        "generating": False,
     }
 
 

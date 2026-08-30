@@ -15,6 +15,7 @@ export default function DashboardPage() {
   const [maxStreak, setMaxStreak] = useState(0);
   const [lesson, setLesson] = useState<TodayLesson | null>(null);
   const [noLessonMsg, setNoLessonMsg] = useState("");
+  const [generating, setGenerating] = useState(false);
   const [srDue, setSrDue] = useState(0);
   const [weeklyLessons, setWeeklyLessons] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -36,10 +37,20 @@ export default function DashboardPage() {
       .then(([me, today, sr, weekly]) => {
         setStreak(me.streak); setMaxStreak(me.max_streak);
         setUserName(me.full_name?.split(" ")[0] || "");
-        setLesson(today.lesson); setNoLessonMsg(today.message || "");
+        setLesson(today.lesson); setNoLessonMsg(today.message || ""); setGenerating(!!today.generating);
         setSrDue(sr.due_today); setWeeklyLessons(weekly.lessons_completed);
       }).finally(() => setLoading(false));
   }, [checking]);
+
+  useEffect(() => {
+    if (!generating) return;
+    const interval = setInterval(() => {
+      apiGet("/lessons/today").then((today) => {
+        setLesson(today.lesson); setNoLessonMsg(today.message || ""); setGenerating(!!today.generating);
+      }).catch(() => {});
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [generating]);
 
   async function completeLesson() {
     if (!lesson) return;
@@ -104,6 +115,13 @@ export default function DashboardPage() {
                 </button>
               </div>
             </>
+          ) : generating ? (
+            <div className="flex items-center gap-4">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-amber-200 border-t-amber-500" />
+              </div>
+              <div><h2 className="font-display text-xl font-semibold text-deep-950">Shaxsiy o'quv rejangiz tayyorlanmoqda...</h2><p className="mt-1 text-sm text-ink-500">AI sizga mos dastur tuzmoqda, bir necha soniya kuting.</p></div>
+            </div>
           ) : (
             <div className="flex items-center gap-4">
               <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-green-50"><Trophy size={28} className="text-green-500"/></div>

@@ -87,7 +87,7 @@ async def generate_diagnostic_quiz(topic: str, lang: str) -> dict:
     for attempt in range(2):
         try:
             response = await client.chat.completions.create(
-                model=settings.OPENAI_MODEL,
+                model=settings.OPENAI_MODEL_SMART,
                 messages=[
                     {"role": "system", "content": DIAGNOSTIC_SYSTEM.replace("{lang}", lang_name)},
                     {"role": "user", "content": f"Mavzu: {topic}"},

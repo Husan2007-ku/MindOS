@@ -107,7 +107,7 @@ Barcha tushuntirishlar, sarlavhalar va izohlar {LANG_NAMES.get(lang, "o'zbek")} 
         for attempt in range(3):
             try:
                 response = await client.chat.completions.create(
-                    model=settings.OPENAI_MODEL,
+                    model=settings.OPENAI_MODEL_SMART,
                     messages=[
                         {"role": "system", "content": SYSTEM_PROMPT},
                         {"role": "user", "content": user_prompt},
@@ -223,7 +223,7 @@ Shu mavzuni sodda va yangi misollar bilan qayta tushuntiruvchi bir kunlik dars t
         remedial_data = None
         try:
             response = await client.chat.completions.create(
-                model=settings.OPENAI_MODEL,
+                model=settings.OPENAI_MODEL_SMART,
                 messages=[
                     {"role": "system", "content": REMEDIAL_SYSTEM.replace("{lang}", lang_name)},
                     {"role": "user", "content": user_prompt},

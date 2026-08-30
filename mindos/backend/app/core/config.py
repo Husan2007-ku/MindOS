@@ -32,7 +32,13 @@ class Settings(BaseSettings):
 
     # OpenAI
     OPENAI_API_KEY: str
-    OPENAI_MODEL: str = "gpt-4o"
+    # Ikki bosqichli model tanlash — token/pul tejash uchun:
+    # FAST — tez-tez chaqiriladigan suhbat/baholash vazifalari (Mentor, Code Mentor,
+    #   uy vazifasi baholash, haftalik hisobot) uchun arzon model.
+    # SMART — kamdan-kam, lekin sifat muhim bo'lgan strukturaviy vazifalar
+    #   (curriculum generatsiyasi, remedial dars, diagnostika testi) uchun kuchli model.
+    OPENAI_MODEL_FAST: str = "gpt-4o-mini"
+    OPENAI_MODEL_SMART: str = "gpt-4o"
     OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
 
     # Telegram

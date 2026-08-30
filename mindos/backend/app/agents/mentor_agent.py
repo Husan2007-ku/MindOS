@@ -144,7 +144,7 @@ class MentorAgent:
         full_response = ""
         try:
             stream = await client.chat.completions.create(
-                model=settings.OPENAI_MODEL,
+                model=settings.OPENAI_MODEL_FAST,
                 messages=messages,
                 temperature=0.7,
                 max_tokens=1000,

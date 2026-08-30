@@ -151,7 +151,7 @@ async def _grade_answer(question: str, answer: str, lang: str) -> tuple[int, str
 
     try:
         response = await client.chat.completions.create(
-            model=settings.OPENAI_MODEL,
+            model=settings.OPENAI_MODEL_FAST,
             messages=[
                 {"role": "system", "content": GRADING_SYSTEM.format(lang=lang_name)},
                 {"role": "user", "content": prompt},

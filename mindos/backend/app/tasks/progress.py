@@ -82,7 +82,7 @@ O'rtacha eslab qolish darajasi (ease factor): {round(avg_ease, 2)} (1.3-2.5 past
 
     try:
         response = await client.chat.completions.create(
-            model=settings.OPENAI_MODEL,
+            model=settings.OPENAI_MODEL_FAST,
             messages=[
                 {"role": "system", "content": PROGRESS_AGENT_SYSTEM.format(lang=lang_names.get(user.lang, "o'zbek"))},
                 {"role": "user", "content": prompt},

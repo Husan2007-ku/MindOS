@@ -91,7 +91,7 @@ class CodeMentorAgent:
         full_response = ""
         try:
             stream = await client.chat.completions.create(
-                model=settings.OPENAI_MODEL,
+                model=settings.OPENAI_MODEL_FAST,
                 messages=messages,
                 temperature=0.5,
                 max_tokens=800,

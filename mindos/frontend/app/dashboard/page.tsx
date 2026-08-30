@@ -109,7 +109,7 @@ export default function DashboardPage() {
               <h2 className="font-display text-2xl font-bold text-white">{lesson.title}</h2>
               <p className="mt-2 text-deep-200 text-sm">Bugungi darsni tugatib, streak'ingizni davom ettiring!</p>
               <div className="mt-6 flex gap-3">
-                <Link href="/curriculum" className="flex items-center gap-2 rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-semibold text-deep-950 hover:bg-amber-400">Darsni boshlash <ArrowRight size={16}/></Link>
+                <Link href={`/chat?lesson=${lesson.id}`} className="flex items-center gap-2 rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-semibold text-deep-950 hover:bg-amber-400">Darsni boshlash <ArrowRight size={16}/></Link>
                 <button onClick={completeLesson} disabled={completing} className="flex items-center gap-2 rounded-xl border border-white/20 px-5 py-2.5 text-sm font-medium text-white hover:bg-white/10">
                   <CheckCircle2 size={16}/>{completing?"Belgilanmoqda...":"Tugatildi"}
                 </button>

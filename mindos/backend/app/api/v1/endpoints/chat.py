@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
@@ -23,6 +23,8 @@ ALLOWED_VOICE_TYPES = {"audio/mpeg", "audio/wav", "audio/x-wav", "audio/mp4", "a
 
 class ChatRequest(BaseModel):
     message: str
+    lesson_id: int | None = None
+    mode: str = "normal"
 
 
 @router.post("/message")
@@ -60,7 +62,7 @@ async def send_message(
 
     async def event_stream():
         try:
-            async for token in agent.chat_stream(current_user, data.message):
+            async for token in agent.chat_stream(current_user, data.message, lesson_id=data.lesson_id, mode=data.mode):
                 yield f"data: {json.dumps({'token': token})}\n\n"
             yield f"data: {json.dumps({'done': True})}\n\n"
         except Exception as e:
@@ -79,6 +81,8 @@ async def send_message(
 @router.post("/voice")
 async def send_voice_message(
     file: UploadFile = File(...),
+    lesson_id: int | None = Form(None),
+    mode: str = Form("normal"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -139,7 +143,7 @@ async def send_voice_message(
         try:
             # Avval transkripsiya qilingan matnni frontend ga yuboramiz (ko'rsatish uchun)
             yield f"data: {json.dumps({'transcript': transcript})}\n\n"
-            async for token in agent.chat_stream(current_user, transcript, message_type="voice"):
+            async for token in agent.chat_stream(current_user, transcript, message_type="voice", lesson_id=lesson_id, mode=mode):
                 yield f"data: {json.dumps({'token': token})}\n\n"
             yield f"data: {json.dumps({'done': True})}\n\n"
         except Exception as e:

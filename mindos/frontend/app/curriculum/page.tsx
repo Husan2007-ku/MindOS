@@ -74,10 +74,10 @@ export default function CurriculumPage() {
                   <div key={week} className="rounded-2xl bg-white border border-deep-100 p-6">
                     <h3 className="font-display text-lg font-semibold text-deep-950 mb-3">Hafta {week}</h3>
                     <div className="space-y-1">{lessons.map(l=>(
-                      <div key={l.id} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 ${l.status==="completed"?"bg-green-50":"hover:bg-deep-50"}`}>
+                      <Link key={l.id} href={`/chat?lesson=${l.id}`} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors ${l.status==="completed"?"bg-green-50":"hover:bg-deep-50"}`}>
                         {l.status==="completed"?<CheckCircle2 size={18} className="text-green-500 flex-shrink-0"/>:<Circle size={18} className="text-ink-200 flex-shrink-0"/>}
                         <span className={`text-sm ${l.status==="completed"?"text-ink-400 line-through":"text-ink-900"}`}>Kun {l.day}: {l.title}</span>
-                      </div>
+                      </Link>
                     ))}</div>
                   </div>
                 ))}</div>

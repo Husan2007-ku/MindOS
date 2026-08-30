@@ -7,7 +7,7 @@ from openai import AsyncOpenAI
 import pytz
 
 from app.core.config import settings
-from app.models.user import User, Message, Curriculum, Source
+from app.models.user import User, Message, Curriculum, Source, Lesson
 from app.services.memory_service import MemoryService
 from app.services.source_service import SourceService
 
@@ -40,7 +40,39 @@ HOZIRGI O'QUV REJASI:
 FOYDALANUVCHI MANBALARI (agar mavjud bo'lsa — fayl/YouTube/kurs matni, foydalanuvchi o'zi qo'shgan):
 Agar quyida manba parchalari bo'lsa, tushuntirishlaringda ULARGA ASOSLAN va ular haqida gapir —
 bu foydalanuvchining haqiqiy o'qiyotgan materiali, umumiy internet ma'lumoti emas.
-{source_context}"""
+{source_context}
+
+ILOVADAN FOYDALANISH (agar foydalanuvchi ilova/tugmalar haqida so'rasa, shunga tayanib javob ber):
+{app_guide}
+
+HOZIRGI DARS FOKUSI:
+{lesson_focus}
+
+REJIM:
+{mode_instructions}"""
+
+
+APP_GUIDE_TEXT = """
+- Bosh sahifa (Dashboard): bugungi darsni va streak (ketma-ket o'rganilgan kunlar)ni ko'rsatadi. "Darsni boshlash" tugmasi bosilsa, shu darsni sen bilan o'rganish uchun to'g'ridan-to'g'ri shu chatga o'tkaziladi.
+- Mentor (Chat, hozir shu yerdasan): savol berish, dars o'rganish va IELTS Speaking mashqi (mikrofon tugmasi + "Speaking mashqi" rejimi) uchun asosiy joy.
+- O'quv reja (Curriculum): barcha haftalik/kunlik darslar ro'yxati. Istalgan darsni bossa, o'sha dars bo'yicha sen bilan suhbat ochiladi.
+- Vazifalar (Homework): har darsdan keyingi yozma vazifani yozib topshirish, AI avtomatik baholaydi va fikr beradi.
+- Takrorlash (Spaced repetition): unutmaslik uchun eski mavzularni ma'lum oraliqda takrorlash kartochkalari.
+- Manbalar (Sources): foydalanuvchi o'z fayli (PDF/DOCX/TXT), YouTube video yoki kurs matnini yuklaydi — shundan keyin sen va o'quv reja shu haqiqiy manbalarga asoslanib javob berasan.
+- Progress: umumiy statistikalar va haftalik hisobot.
+- Sozlamalar: til, bildirishnoma va profil sozlamalari.
+Agar foydalanuvchi "bu tugma nima qiladi", "bundan qanday foydalanaman" kabi savol bersa — shu ro'yxatga tayanib aniq va qisqa javob ber.
+""".strip()
+
+IELTS_SPEAKING_INSTRUCTIONS = """
+Foydalanuvchi IELTS Speaking mashqini yoqdi. Sen hozir IELTS Speaking imtihonchisi rolini o'ynaysan:
+1. FAQAT ingliz tilida gapir (tushuntirish va fikrlaringni ham ingliz tilida ber — bu til amaliyoti mashqi)
+2. IELTS Speaking Part 1 (shaxsiy/kundalik savollar), Part 2 (1 daqiqalik monolog uchun mavzu-karta) yoki Part 3 (chuqurroq mavhum muhokama) uslubida savol ber
+3. Foydalanuvchi javob bergach, QISQA (2-3 jumla) band-score uslubida fikr ber: fluency, vocabulary, grammar yoki pronunciation bo'yicha bitta aniq ijobiy va bitta yaxshilash kerak bo'lgan narsa, keyin navbatdagi savolga o't
+4. Bu rejimda Sokratik uslub va o'zbekcha tushuntirishni ishlatma — savol-javob-fikr formatida davom et
+""".strip()
+
+NORMAL_MODE_TEXT = "Oddiy suhbat rejimi — yuqoridagi asosiy qoidalarga amal qil."
 
 
 class MentorAgent:
@@ -49,7 +81,7 @@ class MentorAgent:
         self.memory_service = MemoryService(db)
         self.source_service = SourceService(db)
 
-    async def get_system_prompt(self, user: User, user_message: str = "") -> str:
+    async def get_system_prompt(self, user: User, user_message: str = "", lesson_id: int | None = None, mode: str = "normal") -> str:
         """Har sessiya uchun kontekstga asoslanib tizim prompti yaratish"""
         # Real vaqt
         user_tz = pytz.timezone(user.timezone or "Asia/Tashkent")
@@ -94,6 +126,27 @@ class MentorAgent:
         curriculum = curr_result.scalar_one_or_none()
         curriculum_context = f"Mavzu: {curriculum.topic}, Daraja: {curriculum.level}" if curriculum else "Hali o'quv reja yo'q"
 
+        # Foydalanuvchi "Darsni boshlash" orqali kirgan bo'lsa — shu darsni FAOL o'qitish uchun kontekst
+        lesson_focus = "Hozircha aniq dars tanlanmagan — umumiy mavzularda yordam ber."
+        if lesson_id is not None:
+            lesson_result = await self.db.execute(
+                select(Lesson)
+                .join(Curriculum)
+                .where(Lesson.id == lesson_id, Curriculum.user_id == user.id)
+            )
+            lesson = lesson_result.scalar_one_or_none()
+            if lesson:
+                lc = lesson.content or {}
+                key_points = "\n".join([f"  - {p}" for p in lc.get("key_points", [])]) or "  (yo'q)"
+                homework_text = lc.get("homework") or "(yo'q)"
+                lesson_focus = (
+                    f"Dars: \"{lesson.title}\" (Hafta {lesson.week}, Kun {lesson.day})\n"
+                    f"Asosiy nuqtalar:\n{key_points}\n"
+                    f"Uy vazifasi: {homework_text}\n"
+                    "Vazifang: shu darsni boshidan oxirigacha FAOL o'qit — har bir asosiy nuqtani sodda tushuntir, "
+                    "misol ber, tushunganini savol bilan tekshir, keyin uy vazifasini birga muhokama qil."
+                )
+
         # NotebookLM-uslubidagi manba asosli kontekst: foydalanuvchi qo'shgan
         # fayl/YouTube/matn bo'laklaridan hozirgi savolga semantik eng yaqinlarini topamiz
         source_context = "Hali manba qo'shilmagan"
@@ -122,6 +175,9 @@ class MentorAgent:
             long_term_memories=long_term,
             curriculum_context=curriculum_context,
             source_context=source_context,
+            app_guide=APP_GUIDE_TEXT,
+            lesson_focus=lesson_focus,
+            mode_instructions=IELTS_SPEAKING_INSTRUCTIONS if mode == "speaking_practice" else NORMAL_MODE_TEXT,
         )
 
     async def get_short_term_memory(self, user_id: int, limit: int = 20) -> list[dict]:
@@ -142,6 +198,8 @@ class MentorAgent:
         user: User,
         user_message: str,
         message_type: str = "text",
+        lesson_id: int | None = None,
+        mode: str = "normal",
     ) -> AsyncGenerator[str, None]:
         """Streaming SSE — AI javobini token-by-token qaytarish"""
 
@@ -156,7 +214,7 @@ class MentorAgent:
         await self.db.flush()
 
         # Kontekst tayyorlash — semantik xotira qidiruvi hozirgi savolga asoslanadi
-        system_prompt = await self.get_system_prompt(user, user_message)
+        system_prompt = await self.get_system_prompt(user, user_message, lesson_id=lesson_id, mode=mode)
         history = await self.get_short_term_memory(user.id, limit=19)  # 20 - yangi xabar = 19
 
         messages = [

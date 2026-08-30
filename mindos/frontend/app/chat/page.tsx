@@ -1,9 +1,10 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { apiGet, getAccessToken, API_ROOT } from "@/lib/api";
 import { useRequireAuth } from "@/lib/useRequireAuth";
-import { Send, Mic, Square, Code2, MessageSquare, Lightbulb } from "lucide-react";
+import { Send, Mic, Square, Code2, MessageSquare, Lightbulb, BookOpen, Languages, X } from "lucide-react";
 
 interface Msg { id: string; role: "user"|"assistant"; content: string; }
 
@@ -14,8 +15,13 @@ const SUGGESTIONS = [
   "Motivatsiya yo'qolganda nima qilish kerak?",
 ];
 
-export default function ChatPage() {
+function ChatPageInner() {
   const { checking } = useRequireAuth();
+  const searchParams = useSearchParams();
+  const [lessonId, setLessonId] = useState<number|null>(null);
+  const [lessonInfo, setLessonInfo] = useState<{id:number; title:string}|null>(null);
+  const [practiceMode, setPracticeMode] = useState<"normal"|"speaking_practice">("normal");
+  const [autoStarted, setAutoStarted] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [codeInput, setCodeInput] = useState("");
@@ -28,11 +34,28 @@ export default function ChatPage() {
   const chunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
+    const lp = searchParams.get("lesson");
+    if (lp) setLessonId(Number(lp));
+    if (searchParams.get("mode") === "speaking_practice") setPracticeMode("speaking_practice");
+  }, [searchParams]);
+
+  useEffect(() => {
     if (checking) return;
     apiGet("/chat/history?limit=50").then(d => {
       setMessages(d.messages.map((m: any) => ({ id: String(m.id), role: m.role, content: m.content })));
     }).finally(() => setLoading(false));
   }, [checking]);
+
+  useEffect(() => {
+    if (!lessonId) return;
+    apiGet(`/lessons/${lessonId}`).then(d => setLessonInfo({ id: d.id, title: d.title })).catch(() => {});
+  }, [lessonId]);
+
+  useEffect(() => {
+    if (!lessonInfo || loading || autoStarted) return;
+    setAutoStarted(true);
+    send(`Bugungi "${lessonInfo.title}" darsini boshlaylik — menga tushuntirib bering.`);
+  }, [lessonInfo, loading, autoStarted]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
@@ -73,7 +96,7 @@ export default function ChatPage() {
     setInput(""); setCodeInput(""); setStreaming(true);
     const tkn = getAccessToken();
     const endpoint = code ? "/api/v1/chat/code" : "/api/v1/chat/message";
-    const reqBody = code ? { message: text, code } : { message: text };
+    const reqBody = code ? { message: text, code } : { message: text, lesson_id: lessonId, mode: practiceMode };
     try {
       const res = await fetch(`${API_ROOT}${endpoint}`, {
         method: "POST",
@@ -113,6 +136,7 @@ export default function ChatPage() {
         setStreaming(true);
         const token = getAccessToken();
         const fd = new FormData(); fd.append("file", blob, "voice.webm");
+        fd.append("mode", practiceMode); if (lessonId) fd.append("lesson_id", String(lessonId));
         try {
           const res = await fetch(`${API_ROOT}/api/v1/chat/voice`, {
             method: "POST", headers: token ? { Authorization: `Bearer ${token}` } : {}, body: fd,
@@ -150,15 +174,32 @@ export default function ChatPage() {
       <main className="flex flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-deep-100 bg-white px-8 py-4">
           <h1 className="font-display text-xl font-bold text-deep-950">Mentor</h1>
-          <div className="flex gap-1 rounded-xl bg-deep-50 p-1">
-            {[{ m:"chat" as const, icon:MessageSquare, label:"Suhbat"}, {m:"code" as const, icon:Code2, label:"Kod"}].map(({m,icon:Icon,label})=>(
-              <button key={m} onClick={()=>setMode(m)}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${mode===m?"bg-white text-deep-900 shadow-sm":"text-ink-500 hover:text-ink-700"}`}>
-                <Icon size={15}/> {label}
-              </button>
-            ))}
+          <div className="flex items-center gap-2">
+            <button onClick={()=>setPracticeMode(practiceMode==="speaking_practice"?"normal":"speaking_practice")}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${practiceMode==="speaking_practice"?"bg-amber-500 text-deep-950":"border border-deep-100 text-ink-500 hover:bg-deep-50"}`}>
+              <Languages size={15}/> IELTS Speaking mashqi
+            </button>
+            <div className="flex gap-1 rounded-xl bg-deep-50 p-1">
+              {[{ m:"chat" as const, icon:MessageSquare, label:"Suhbat"}, {m:"code" as const, icon:Code2, label:"Kod"}].map(({m,icon:Icon,label})=>(
+                <button key={m} onClick={()=>setMode(m)}
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${mode===m?"bg-white text-deep-900 shadow-sm":"text-ink-500 hover:text-ink-700"}`}>
+                  <Icon size={15}/> {label}
+                </button>
+              ))}
+            </div>
           </div>
         </header>
+        {lessonInfo && (
+          <div className="flex items-center justify-between border-b border-amber-100 bg-amber-50 px-8 py-2.5 text-sm text-amber-800">
+            <span className="flex items-center gap-2"><BookOpen size={15}/> Bugungi dars: <strong>{lessonInfo.title}</strong></span>
+            <button onClick={()=>setLessonInfo(null)} className="rounded-full p-1 hover:bg-amber-100"><X size={14}/></button>
+          </div>
+        )}
+        {practiceMode==="speaking_practice" && (
+          <div className="flex items-center gap-2 border-b border-deep-100 bg-deep-950 px-8 py-2 text-sm text-white">
+            <Languages size={15}/> IELTS Speaking rejimi yoqiq — javoblaringizni ingliz tilida yozing yoki mikrofondan gapiring
+          </div>
+        )}
 
         <div className="flex-1 overflow-y-auto px-8 py-6">
           {loading ? (
@@ -221,4 +262,8 @@ export default function ChatPage() {
       </main>
     </div>
   );
+}
+
+export default function ChatPage() {
+  return <Suspense fallback={null}><ChatPageInner /></Suspense>;
 }

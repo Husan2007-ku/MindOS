@@ -8,6 +8,7 @@ from openai import AsyncOpenAI
 from app.core.config import settings
 from app.models.user import Curriculum, Lesson, LessonStatus
 from app.services.memory_service import MemoryService
+from app.services.source_service import SourceService
 
 logger = logging.getLogger(__name__)
 client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
@@ -23,6 +24,7 @@ Qoidalar:
 3. Darslar progressiv — oddiydan murakkabga
 4. Har dars uchun aniq sarlavha va 3-5 ta asosiy nuqta
 5. Resurslar: bepul va mavjud manbalarga asoslangin (YouTube, freeCodeCamp, docs.python.org va h.k.)
+6. Agar foydalanuvchi o'zining shaxsiy manbalarini (fayl/YouTube/kurs matni) qo'shgan bo'lsa, va ular quyida "FOYDALANUVCHI MANBALARI" sifatida berilgan bo'lsa — reja va key_points'ni shu HAQIQIY manbalarga asoslab tuzing (umumiy o'ylab topilgan ma'lumot emas), va resources ro'yxatida shu manbalarning nomini ko'rsating.
 
 JSON struktura:
 {
@@ -75,6 +77,7 @@ class CurriculumAgent:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.memory_service = MemoryService(db)
+        self.source_service = SourceService(db)
 
     async def generate(
         self,
@@ -99,6 +102,21 @@ Foydalanuvchi ma'lumoti:
 - Til: {LANG_NAMES.get(lang, "o'zbek")}
 
 Barcha tushuntirishlar, sarlavhalar va izohlar {LANG_NAMES.get(lang, "o'zbek")} tilida bo'lsin."""
+
+        # NotebookLM-uslubidagi manba asosli reja: foydalanuvchi mavzu/maqsad bo'yicha
+        # o'zi qo'shgan fayl/YouTube/matn manbalaridan semantik eng yaqinlarini topib,
+        # promptga "haqiqiy kontekst" sifatida qo'shamiz.
+        source_chunks = await self.source_service.search_relevant_chunks(
+            user_id, f"{topic} {goal}".strip(), limit=10
+        )
+        if source_chunks:
+            from app.models.user import Source
+            sources_result = await self.db.execute(
+                select(Source).where(Source.id.in_({c.source_id for c in source_chunks}))
+            )
+            sources_by_id = {s.id: s for s in sources_result.scalars().all()}
+            source_context = SourceService.format_chunks_as_context(source_chunks, sources_by_id)
+            user_prompt += f"\n\nFOYDALANUVCHI MANBALARI (shu haqiqiy matnlarga asoslanib reja tuzing):\n{source_context}"
 
         curriculum_data = None
         last_error = None

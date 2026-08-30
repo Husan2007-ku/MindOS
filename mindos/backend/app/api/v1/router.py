@@ -13,6 +13,7 @@ from app.api.v1.endpoints.referral import router as referral_router
 from app.api.v1.endpoints.webhooks import router as webhooks_router
 from app.api.v1.endpoints.admin import router as admin_router
 from app.api.v1.endpoints.users import router as users_router
+from app.api.v1.endpoints.sources import router as sources_router
 
 api_router = APIRouter()
 
@@ -29,3 +30,4 @@ api_router.include_router(subscription_router)
 api_router.include_router(referral_router)
 api_router.include_router(webhooks_router)
 api_router.include_router(admin_router)
+api_router.include_router(sources_router)

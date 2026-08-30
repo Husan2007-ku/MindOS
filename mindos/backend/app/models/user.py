@@ -92,6 +92,7 @@ class User(Base):
     spaced_items = relationship("SpacedItem", back_populates="user", cascade="all, delete-orphan")
     subscriptions = relationship("Subscription", back_populates="user", cascade="all, delete-orphan")
     notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
+    sources = relationship("Source", back_populates="user", cascade="all, delete-orphan")
 
 
 # ─── Curriculum ───────────────────────────────────────────
@@ -110,6 +111,7 @@ class Curriculum(Base):
 
     user = relationship("User", back_populates="curricula")
     lessons = relationship("Lesson", back_populates="curriculum", cascade="all, delete-orphan")
+    sources = relationship("Source", back_populates="curriculum")
 
 
 # ─── Lesson ───────────────────────────────────────────────
@@ -242,3 +244,53 @@ class Referral(Base):
     reward_given = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), default=utcnow)
     completed_at = Column(DateTime(timezone=True), nullable=True)
+
+
+# ─── Source (NotebookLM-uslubidagi manba asosli o'rganish) ──
+# Foydalanuvchi o'zi o'qiyotgan/o'qigan kursni, YouTube videoni yoki faylni
+# (PDF/DOCX/TXT) qo'shishi mumkin. Matn chiqarib olinadi, bo'laklarga (chunk)
+# bo'linadi va har bir bo'lak uchun embedding hisoblanadi (xuddi Memory kabi) —
+# shu orqali Curriculum/Mentor Agent AI generatsiyasi HAQIQIY manbaga
+# asoslanishi mumkin, o'ylab topilgan (hallucinated) ma'lumot o'rniga.
+class SourceType(str, enum.Enum):
+    file = "file"
+    youtube = "youtube"
+    text = "text"
+
+
+class SourceStatus(str, enum.Enum):
+    processing = "processing"
+    ready = "ready"
+    failed = "failed"
+
+
+class Source(Base):
+    __tablename__ = "sources"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    curriculum_id = Column(Integer, ForeignKey("curricula.id", ondelete="SET NULL"), nullable=True, index=True)
+    type = Column(SAEnum(SourceType), nullable=False)
+    title = Column(String(500), nullable=False)
+    origin = Column(String(1000), nullable=True)  # asl fayl nomi yoki YouTube URL
+    raw_text = Column(Text, nullable=True)  # to'liq chiqarib olingan matn
+    status = Column(SAEnum(SourceStatus), default=SourceStatus.processing, nullable=False)
+    error_message = Column(Text, nullable=True)
+    char_count = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), default=utcnow)
+
+    user = relationship("User", back_populates="sources")
+    curriculum = relationship("Curriculum", back_populates="sources")
+    chunks = relationship("SourceChunk", back_populates="source", cascade="all, delete-orphan")
+
+
+class SourceChunk(Base):
+    __tablename__ = "source_chunks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    source_id = Column(Integer, ForeignKey("sources.id", ondelete="CASCADE"), nullable=False, index=True)
+    chunk_index = Column(Integer, nullable=False)
+    content = Column(Text, nullable=False)
+    embedding = Column(Vector(1536), nullable=True)  # text-embedding-3-small
+
+    source = relationship("Source", back_populates="chunks")

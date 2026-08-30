@@ -7,8 +7,9 @@ from openai import AsyncOpenAI
 import pytz
 
 from app.core.config import settings
-from app.models.user import User, Message, Curriculum
+from app.models.user import User, Message, Curriculum, Source
 from app.services.memory_service import MemoryService
+from app.services.source_service import SourceService
 
 logger = logging.getLogger(__name__)
 client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
@@ -34,13 +35,19 @@ UZOQ MUDDATLI XOTIRA (Eng muhim faktlar):
 {long_term_memories}
 
 HOZIRGI O'QUV REJASI:
-{curriculum_context}"""
+{curriculum_context}
+
+FOYDALANUVCHI MANBALARI (agar mavjud bo'lsa — fayl/YouTube/kurs matni, foydalanuvchi o'zi qo'shgan):
+Agar quyida manba parchalari bo'lsa, tushuntirishlaringda ULARGA ASOSLAN va ular haqida gapir —
+bu foydalanuvchining haqiqiy o'qiyotgan materiali, umumiy internet ma'lumoti emas.
+{source_context}"""
 
 
 class MentorAgent:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.memory_service = MemoryService(db)
+        self.source_service = SourceService(db)
 
     async def get_system_prompt(self, user: User, user_message: str = "") -> str:
         """Har sessiya uchun kontekstga asoslanib tizim prompti yaratish"""
@@ -87,6 +94,23 @@ class MentorAgent:
         curriculum = curr_result.scalar_one_or_none()
         curriculum_context = f"Mavzu: {curriculum.topic}, Daraja: {curriculum.level}" if curriculum else "Hali o'quv reja yo'q"
 
+        # NotebookLM-uslubidagi manba asosli kontekst: foydalanuvchi qo'shgan
+        # fayl/YouTube/matn bo'laklaridan hozirgi savolga semantik eng yaqinlarini topamiz
+        source_context = "Hali manba qo'shilmagan"
+        if user_message.strip():
+            source_chunks = await self.source_service.search_relevant_chunks(
+                user.id,
+                user_message,
+                curriculum_id=curriculum.id if curriculum else None,
+                limit=6,
+            )
+            if source_chunks:
+                sources_result = await self.db.execute(
+                    select(Source).where(Source.id.in_({c.source_id for c in source_chunks}))
+                )
+                sources_by_id = {s.id: s for s in sources_result.scalars().all()}
+                source_context = SourceService.format_chunks_as_context(source_chunks, sources_by_id)
+
         lang_names = {"uz": "O'zbek", "ru": "Rus", "en": "Ingliz"}
         lang = lang_names.get(user.lang, "O'zbek")
 
@@ -97,6 +121,7 @@ class MentorAgent:
             user_context=user_context,
             long_term_memories=long_term,
             curriculum_context=curriculum_context,
+            source_context=source_context,
         )
 
     async def get_short_term_memory(self, user_id: int, limit: int = 20) -> list[dict]:

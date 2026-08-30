@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import { apiGet, apiPut } from "@/lib/api";
 import { useRequireAuth } from "@/lib/useRequireAuth";
-import { CheckCircle2, Circle, Pause, Play, Target, BookOpen } from "lucide-react";
+import { CheckCircle2, Circle, Pause, Play, Target, BookOpen, Library } from "lucide-react";
+import Link from "next/link";
 
 interface Curriculum { id:number; topic:string; level:string; total_weeks:number; status:string; }
 interface Lesson { id:number; day:number; title:string; status:string; }
@@ -16,10 +17,12 @@ export default function CurriculumPage() {
   const [milestones, setMilestones] = useState<string[]>([]);
   const [progress, setProgress] = useState({ completed_lessons:0, total_lessons:0, percentage:0 });
   const [loading, setLoading] = useState(true);
+  const [sourceCount, setSourceCount] = useState(0);
 
   useEffect(() => {
     if (checking) return;
     apiGet("/curricula").then(d => { setCurricula(d.curricula); if(d.curricula.length>0) setSelectedId(d.curricula[0].id); else setLoading(false); });
+    apiGet("/sources").then(d => setSourceCount((d.sources||[]).filter((s:any)=>s.status==="ready").length)).catch(()=>{});
   }, [checking]);
 
   useEffect(() => {
@@ -41,7 +44,7 @@ export default function CurriculumPage() {
     <div className="flex min-h-screen bg-paper-100">
       <Sidebar/>
       <main className="flex-1 overflow-y-auto px-8 py-8">
-        <div className="mb-8"><h1 className="font-display text-3xl font-bold text-deep-950">O'quv reja</h1><p className="mt-1 text-ink-500">Sizning shaxsiy o'quv yo'lxaritangiz</p></div>
+        <div className="mb-8 flex items-center justify-between"><div><h1 className="font-display text-3xl font-bold text-deep-950">O'quv reja</h1><p className="mt-1 text-ink-500">Sizning shaxsiy o'quv yo'lxaritangiz</p></div>{sourceCount>0 && <Link href="/sources" className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100"><Library size={14}/>{sourceCount} ta manba asosida</Link>}</div>
         {curricula.length===0 ? (
           <div className="rounded-3xl bg-white border border-deep-100 p-12 text-center">
             <BookOpen size={40} className="mx-auto text-amber-500 mb-4"/>

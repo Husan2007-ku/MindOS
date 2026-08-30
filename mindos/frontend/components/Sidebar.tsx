@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { LayoutDashboard,MessageCircle,BookOpen,ClipboardCheck,Repeat2,TrendingUp,Settings,LogOut,Flame,Sun,Moon } from "lucide-react";
+import { LayoutDashboard,MessageCircle,BookOpen,ClipboardCheck,Repeat2,TrendingUp,Settings,LogOut,Flame,Sun,Moon,Library } from "lucide-react";
 import { apiGet, clearTokens } from "@/lib/api";
 import { useTheme } from "@/lib/useTheme";
 
@@ -10,6 +10,7 @@ const NAV=[
   {href:"/dashboard",label:"Bosh sahifa",icon:LayoutDashboard},
   {href:"/chat",label:"Mentor",icon:MessageCircle},
   {href:"/curriculum",label:"O'quv reja",icon:BookOpen},
+  {href:"/sources",label:"Manbalar",icon:Library},
   {href:"/homework",label:"Vazifalar",icon:ClipboardCheck},
   {href:"/spaced-rep",label:"Takrorlash",icon:Repeat2},
   {href:"/progress",label:"Progress",icon:TrendingUp},

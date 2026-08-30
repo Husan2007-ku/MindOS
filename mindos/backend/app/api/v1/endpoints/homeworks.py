@@ -1,5 +1,5 @@
 import logging
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from pydantic import BaseModel
@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 
 LANG_NAMES = {"uz": "o'zbek", "ru": "rus", "en": "ingliz"}
+REMEDIAL_SCORE_THRESHOLD = 50  # Shundan past ball — curriculum o'zini tuzatadi (qo'shimcha dars)
 
 GRADING_SYSTEM = """Sen MindOS platformasining vazifa baholovchisisan.
 Foydalanuvchi javobini 0-100 ball bilan baholang va qisqa, mehribon fikr bering (2-3 jumla).
@@ -90,6 +91,7 @@ async def get_homework(
 async def submit_homework(
     homework_id: int,
     data: SubmitHomeworkRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -119,11 +121,27 @@ async def submit_homework(
 
     await db.commit()
 
+    # --- Adaptiv o'zini tuzatuvchi curriculum (TZ'dan tashqari qo'shildi) ---
+    # Past ball — foydalanuvchi mavzuni tushunmagan degani. Statik reja bilan
+    # shunchaki keyingi darsga o'tavermay, curriculum o'zi qo'shimcha "qayta
+    # tushuntirish" darsini generatsiya qiladi va navbatdagi darsdan oldinga qo'yadi.
+    remedial_queued = False
+    if score < REMEDIAL_SCORE_THRESHOLD and hw.lesson_id:
+        background_tasks.add_task(
+            _create_remedial_lesson_task,
+            lesson_id=hw.lesson_id,
+            weak_question=hw.question,
+            weak_answer=data.answer,
+            lang=current_user.lang.value,
+        )
+        remedial_queued = True
+
     return {
         "id": hw.id,
         "score": score,
         "ai_feedback": feedback,
         "message": "Vazifa baholandi!",
+        "remedial_lesson_queued": remedial_queued,
     }
 
 
@@ -150,3 +168,18 @@ async def _grade_answer(question: str, answer: str, lang: str) -> tuple[int, str
     except Exception as e:
         logger.error(f"Homework grading xatosi: {e}")
         return 50, "Javobingiz qabul qilindi, lekin avtomatik baholashda texnik xato yuz berdi."
+
+
+async def _create_remedial_lesson_task(lesson_id: int, weak_question: str, weak_answer: str, lang: str):
+    """Background task — past ball olingan mavzu uchun qo'shimcha dars yaratadi."""
+    from app.agents.curriculum_agent import CurriculumAgent
+    from app.core.database import AsyncSessionLocal
+
+    async with AsyncSessionLocal() as db:
+        agent = CurriculumAgent(db)
+        await agent.generate_remedial_lesson(
+            lesson_id=lesson_id,
+            weak_question=weak_question,
+            weak_answer=weak_answer,
+            lang=lang,
+        )

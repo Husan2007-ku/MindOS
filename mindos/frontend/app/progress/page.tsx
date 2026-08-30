@@ -1,9 +1,18 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import { apiGet } from "@/lib/api";
 import { useRequireAuth } from "@/lib/useRequireAuth";
-import { Flame, Share2, TrendingUp, Brain, BookOpen } from "lucide-react";
+import { Flame, Share2, TrendingUp, Brain, BookOpen, Award, Target } from "lucide-react";
+
+interface DayActivity { date: string; label: string; messages: number; lessons_completed: number; }
+interface MasteryItem {
+  curriculum_id: number; topic: string; level: string; status: string;
+  total_lessons: number; completed_lessons: number;
+  completion_percent: number; avg_homework_score: number | null;
+  retention_index: number; mastery_score: number; certificate_eligible: boolean;
+}
 
 export default function ProgressPage() {
   const { checking } = useRequireAuth();
@@ -11,12 +20,24 @@ export default function ProgressPage() {
   const [monthly, setMonthly] = useState({ lessons_completed:0 });
   const [streak, setStreak] = useState({ current_streak:0, max_streak:0, streak_status:"" });
   const [sr, setSr] = useState({ total_cards:0, retention_rate:0 });
+  const [daily, setDaily] = useState<DayActivity[]>([]);
+  const [mastery, setMastery] = useState<MasteryItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (checking) return;
-    Promise.all([apiGet("/progress/weekly"),apiGet("/progress/monthly"),apiGet("/progress/streak"),apiGet("/spaced-repetition/stats")])
-      .then(([w,m,s,sr])=>{setWeekly(w);setMonthly(m);setStreak(s);setSr(sr);})
+    Promise.all([
+      apiGet("/progress/weekly"),
+      apiGet("/progress/monthly"),
+      apiGet("/progress/streak"),
+      apiGet("/spaced-repetition/stats"),
+      apiGet("/progress/daily-activity"),
+      apiGet("/progress/mastery"),
+    ])
+      .then(([w,m,s,srData,d,ms])=>{
+        setWeekly(w); setMonthly(m); setStreak(s); setSr(srData);
+        setDaily(d.days || []); setMastery(ms.curricula || []);
+      })
       .finally(()=>setLoading(false));
   }, [checking]);
 
@@ -27,6 +48,8 @@ export default function ProgressPage() {
   }
 
   if (checking||loading) return <div className="flex h-screen items-center justify-center bg-paper-100"><div className="h-10 w-10 animate-spin rounded-full border-4 border-deep-100 border-t-deep-900"/></div>;
+
+  const maxDailyValue = Math.max(...daily.map(d => d.messages), 1);
 
   return (
     <div className="flex min-h-screen bg-paper-100">
@@ -67,16 +90,61 @@ export default function ProgressPage() {
             </div>
           ))}
         </div>
-        <div className="rounded-2xl border border-deep-100 bg-white p-6">
+
+        {/* Haqiqiy kunlik faollik (avval 6/7 ustuni soxta/hardcode edi) */}
+        <div className="mb-6 rounded-2xl border border-deep-100 bg-white p-6">
           <h3 className="font-semibold text-deep-950 mb-4">Bu hafta faollik</h3>
           <div className="flex items-end gap-2 h-24">
-            {[3,5,2,7,4,6,weekly.messages_sent].map((v,i)=>(
-              <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                <div className="w-full rounded-t-lg bg-deep-900" style={{height:`${Math.max((v/10)*80,8)}px`}}/>
-                <span className="text-xs text-ink-400">{["Du","Se","Ch","Pa","Ju","Sh","Ya"][i]}</span>
+            {daily.map((d,i)=>(
+              <div key={i} className="flex-1 flex flex-col items-center gap-1" title={`${d.messages} xabar, ${d.lessons_completed} dars`}>
+                <div className="w-full rounded-t-lg bg-deep-900" style={{height:`${Math.max((d.messages/maxDailyValue)*80,4)}px`}}/>
+                <span className="text-xs text-ink-400">{d.label}</span>
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Mastery / Ta'sir paneli — TZ'dan tashqari qo'shilgan funksiya */}
+        <div className="rounded-2xl border border-deep-100 bg-white p-6">
+          <div className="flex items-center gap-2 mb-1">
+            <Target size={18} className="text-deep-700" />
+            <h3 className="font-semibold text-deep-950">O'zlashtirish darajasi</h3>
+          </div>
+          <p className="text-xs text-ink-400 mb-4">Tugallanish + vazifa baholari + eslab qolish indeksidan hisoblangan yagona ko'rsatkich</p>
+          {mastery.length === 0 ? (
+            <p className="text-sm text-ink-500">Hali faol o'quv reja yo'q.</p>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {mastery.map(m => (
+                <div key={m.curriculum_id} className="rounded-xl border border-deep-100 p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <p className="font-semibold text-deep-950 text-sm">{m.topic}</p>
+                      <p className="text-xs text-ink-400">{m.completed_lessons ?? 0} dars • {m.completion_percent}% tugallangan</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-mono text-2xl font-bold text-deep-950">{m.mastery_score}</div>
+                      <div className="text-xs text-ink-400">mastery</div>
+                    </div>
+                  </div>
+                  <div className="h-2 rounded-full bg-deep-100 mb-3">
+                    <div className="h-2 rounded-full bg-amber-500" style={{width:`${Math.min(m.mastery_score,100)}%`}}/>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-4 text-xs text-ink-500">
+                      <span>Vazifa: {m.avg_homework_score !== null ? `${m.avg_homework_score}%` : "—"}</span>
+                      <span>Eslab qolish: {m.retention_index}%</span>
+                    </div>
+                    {m.certificate_eligible && (
+                      <Link href={`/certificate/${m.curriculum_id}`} className="flex items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-deep-950 hover:bg-amber-400">
+                        <Award size={13}/> Sertifikat
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </main>
     </div>

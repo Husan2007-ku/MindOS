@@ -1,4 +1,6 @@
-const API_BASE = "http://localhost:8000/api/v1";
+// Production'da Vercel muhit o'zgaruvchisi orqali sozlanadi (masalan: https://api.mindos.uz/api/v1).
+// Sozlanmasa — lokal development uchun localhost fallback ishlatiladi.
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000/api/v1";
 
 class ApiError extends Error {
   status: number;

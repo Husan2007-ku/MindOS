@@ -18,6 +18,47 @@ class OnboardingRequest(BaseModel):
     goal: str = ""          # "3 oyda ishga joylashmoqchiman"
 
 
+class DiagnosticGenerateRequest(BaseModel):
+    topic: str
+
+
+class DiagnosticScoreRequest(BaseModel):
+    quiz_token: str
+    answers: list[int]
+
+
+@router.post("/diagnostic/generate")
+async def generate_diagnostic(
+    data: DiagnosticGenerateRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Adaptiv diagnostika — TZ'dan tashqari qo'shilgan funksiya.
+    Foydalanuvchi o'zi "boshlang'ich/o'rta/yuqori" deb TAXMIN qilishi o'rniga,
+    AI mavzuga mos 4 ta savolli qisqa test tuzadi va shu asosda darajani aniq belgilaydi.
+    """
+    if len(data.topic.strip()) < 3:
+        raise HTTPException(status_code=400, detail="Mavzu kamida 3 ta belgidan iborat bo'lishi kerak")
+
+    from app.services.diagnostic_service import generate_diagnostic_quiz
+    quiz = await generate_diagnostic_quiz(data.topic.strip(), current_user.lang.value)
+    return quiz
+
+
+@router.post("/diagnostic/score")
+async def score_diagnostic(
+    data: DiagnosticScoreRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """Diagnostika javoblarini baholaydi va tavsiya etilgan darajani qaytaradi."""
+    from app.services.diagnostic_service import score_diagnostic_quiz
+    try:
+        result = score_diagnostic_quiz(data.quiz_token, data.answers)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return result
+
+
 @router.post("/start")
 async def start_onboarding(
     data: OnboardingRequest,

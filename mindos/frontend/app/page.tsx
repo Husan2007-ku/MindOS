@@ -8,8 +8,6 @@ import { Check, ArrowRight, Zap, Shield, Star, Brain, Repeat2, Mic, MessageCircl
 export default function LandingPage() {
   const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
-  const [counters, setCounters] = useState({ users: 0, lessons: 0, retention: 0 });
-  const [animated, setAnimated] = useState(false);
 
   useEffect(() => {
     if (getAccessToken()) router.replace("/dashboard");
@@ -20,22 +18,6 @@ export default function LandingPage() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
-  useEffect(() => {
-    if (animated) return;
-    const timer = setTimeout(() => {
-      setAnimated(true);
-      const dur = 2000; const start = Date.now();
-      const targets = { users: 1240, lessons: 18600, retention: 94 };
-      const interval = setInterval(() => {
-        const p = Math.min((Date.now()-start)/dur, 1);
-        const e = 1-Math.pow(1-p,3);
-        setCounters({ users:Math.floor(targets.users*e), lessons:Math.floor(targets.lessons*e), retention:Math.floor(targets.retention*e) });
-        if (p>=1) clearInterval(interval);
-      }, 16);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [animated]);
 
   return (
     <main style={{ minHeight:"100vh", background:"#FAF8F4", overflow:"hidden" }}>
@@ -71,15 +53,9 @@ export default function LandingPage() {
                 <Shield size={14} color="#22c55e" /> Kredit karta shart emas
               </div>
             </div>
-            <div style={{ display:"flex", alignItems:"center", gap:"12px" }}>
-              <div style={{ display:"flex" }}>
-                {["#4F46E5","#D4A024","#0F2942","#6366F1"].map((c,i)=>(
-                  <div key={i} style={{ width:"32px", height:"32px", borderRadius:"50%", background:c, border:"2px solid white", marginLeft:i>0?"-8px":"0", display:"flex", alignItems:"center", justifyContent:"center", fontSize:"12px", fontWeight:"700", color:"white" }}>
-                    {["A","B","C","D"][i]}
-                  </div>
-                ))}
-              </div>
-              <span style={{ fontSize:"13px", color:"#6B675D" }}><strong style={{ color:"#0F2942" }}>1,200+</strong> o'quvchi allaqachon boshlagan</span>
+            <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
+              <Star size={14} color="#D4A024" />
+              <span style={{ fontSize:"13px", color:"#6B675D" }}>Erta kirish bosqichida — <strong style={{ color:"#0F2942" }}>birinchi foydalanuvchilardan bo'ling</strong></span>
             </div>
           </div>
 
@@ -113,9 +89,9 @@ export default function LandingPage() {
       <section style={{ background:"#0F2942", padding:"64px 24px" }}>
         <div style={{ maxWidth:"1200px", margin:"0 auto", display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"32px", textAlign:"center" }}>
           {[
-            { value:`${counters.users.toLocaleString()}+`, label:"Faol o'quvchilar" },
-            { value:`${counters.lessons.toLocaleString()}+`, label:"Tugatilgan darslar" },
-            { value:`${counters.retention}%`, label:"O'rtacha eslab qolish" },
+            { value:"3", label:"AI agent: Mentor, Curriculum, Code" },
+            { value:"SM-2", label:"Ilmiy spaced-repetition algoritmi" },
+            { value:"24/7", label:"Telegram orqali mavjud" },
           ].map(({value,label})=>(
             <div key={label}>
               <div style={{ fontSize:"48px", fontWeight:"800", color:"#D4A024", fontFamily:"monospace" }}>{value}</div>

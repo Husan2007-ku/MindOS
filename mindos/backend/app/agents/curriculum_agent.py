@@ -48,6 +48,28 @@ JSON struktura:
   ]
 }"""
 
+# --- Qo'shimcha: Adaptiv/o'zini tuzatuvchi reja (TZ'dan tashqari qo'shildi) ---
+# Foydalanuvchi biror vazifada past ball olsa (< 50), curriculum o'zini o'zi
+# tuzatadi: shu kuni AI orqali maxsus "qayta tushuntirish" darsi generatsiya
+# qilib, navbatdagi darsdan OLDIN joylashtiradi. Bu "statik reja" ni
+# "o'quvchiga chindan ham moslashadigan reja" ga aylantiradi.
+REMEDIAL_SYSTEM = """Sen MindOS platformasining Remedial (qayta tushuntiruvchi) Agentisan.
+Foydalanuvchi bir vazifada qiynaldi. Sening vazifang — bir kunlik, QISQA va boshqacha
+uslubda (ko'proq amaliy misollar, sodda tushuntirish) qo'shimcha dars tuzish.
+
+Qoidalar:
+1. Javobni FAQAT JSON formatida ber
+2. Oldingi tushuntirishni takrorlama — YANGI misollar va boshqa yondashuv ishlat
+3. Til: {lang}
+
+JSON struktura:
+{
+  "title": "<dars sarlavhasi, masalan: 'Qayta ko'rib chiqish: ...'>",
+  "key_points": ["<asosiy nuqta 1>", "<asosiy nuqta 2>", "<asosiy nuqta 3>"],
+  "resources": [{"title": "<manba>", "url": "<link yoki tavsif>"}],
+  "homework": "<yangi, sodda vazifa savoli>"
+}"""
+
 
 class CurriculumAgent:
     def __init__(self, db: AsyncSession):
@@ -72,11 +94,11 @@ Foydalanuvchi ma'lumoti:
 - O'rganmoqchi: {topic}
 - Daraja: {level}
 - Kuniga vaqt: {daily_minutes} daqiqa
-- Hozirgi bilim: {current_knowledge or 'Noma\'lum'}
+- Hozirgi bilim: {current_knowledge or "Noma'lum"}
 - Maqsad: {goal or 'Umumiy bilim olish'}
-- Til: {LANG_NAMES.get(lang, 'o\'zbek')}
+- Til: {LANG_NAMES.get(lang, "o'zbek")}
 
-Barcha tushuntirishlar, sarlavhalar va izohlar {LANG_NAMES.get(lang, 'o\'zbek')} tilida bo'lsin."""
+Barcha tushuntirishlar, sarlavhalar va izohlar {LANG_NAMES.get(lang, "o'zbek")} tilida bo'lsin."""
 
         curriculum_data = None
         last_error = None
@@ -170,6 +192,76 @@ Barcha tushuntirishlar, sarlavhalar va izohlar {LANG_NAMES.get(lang, 'o\'zbek')}
 
         await self.db.commit()
         logger.info(f"Curriculum {curriculum_id}: {day_counter} ta dars saqlandi")
+
+    async def generate_remedial_lesson(
+        self,
+        lesson_id: int,
+        weak_question: str,
+        weak_answer: str,
+        lang: str,
+    ) -> int | None:
+        """
+        Adaptiv qayta tuzatish (TZ'dan tashqari qo'shildi).
+        Foydalanuvchi shu darsning vazifasida past ball olganda chaqiriladi:
+        xuddi shu kunga (week/day) YANGI, boshqacha uslubdagi qayta tushuntirish
+        darsi qo'shadi. /lessons/today week,day bo'yicha saralagani uchun bu dars
+        avtomatik ravishda navbatdagi rejalashtirilgan darsdan OLDIN chiqadi.
+        """
+        result = await self.db.execute(select(Lesson).where(Lesson.id == lesson_id))
+        lesson = result.scalar_one_or_none()
+        if not lesson:
+            logger.warning(f"Remedial: asl dars topilmadi (lesson_id={lesson_id})")
+            return None
+
+        lang_name = LANG_NAMES.get(lang, "o'zbek")
+        user_prompt = f"""Asl dars: {lesson.title}
+Vazifa savoli: {weak_question}
+Foydalanuvchining (past baholangan) javobi: {weak_answer}
+
+Shu mavzuni sodda va yangi misollar bilan qayta tushuntiruvchi bir kunlik dars tuzing."""
+
+        remedial_data = None
+        try:
+            response = await client.chat.completions.create(
+                model=settings.OPENAI_MODEL,
+                messages=[
+                    {"role": "system", "content": REMEDIAL_SYSTEM.replace("{lang}", lang_name)},
+                    {"role": "user", "content": user_prompt},
+                ],
+                temperature=0.4,
+                max_tokens=800,
+                response_format={"type": "json_object"},
+            )
+            remedial_data = json.loads(response.choices[0].message.content)
+        except Exception as e:
+            logger.warning(f"Remedial lesson AI generatsiyasi muvaffaqiyatsiz: {e}")
+            remedial_data = {
+                "title": f"Qayta ko'rib chiqish: {lesson.title}",
+                "key_points": [f"'{lesson.title}' mavzusini qaytadan, sodda tilda ko'rib chiqing"],
+                "resources": [],
+                "homework": weak_question,
+            }
+
+        remedial = Lesson(
+            curriculum_id=lesson.curriculum_id,
+            week=lesson.week,
+            day=lesson.day,
+            title=f"🔁 {remedial_data.get('title', 'Qayta tushuntirish')}",
+            content={
+                "key_points": remedial_data.get("key_points", []),
+                "resources": remedial_data.get("resources", []),
+                "homework": remedial_data.get("homework", ""),
+                "week_theme": "Qayta mustahkamlash",
+                "is_remedial": True,
+                "source_lesson_id": lesson_id,
+            },
+            status=LessonStatus.pending,
+        )
+        self.db.add(remedial)
+        await self.db.commit()
+        await self.db.refresh(remedial)
+        logger.info(f"Remedial dars yaratildi: id={remedial.id}, source_lesson={lesson_id}")
+        return remedial.id
 
     def _default_template(self, topic: str, lang: str) -> dict:
         """Agent ishlamagan holda fallback template"""

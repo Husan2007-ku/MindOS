@@ -1,0 +1,12 @@
+{
+  "name": "MindOS — O'rgan. Esla. O's.",
+  "short_name": "MindOS",
+  "description": "Har bir o'quvchining cho'ntagidagi shaxsiy AI mentori",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#FAF8F4",
+  "theme_color": "#0F2942",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

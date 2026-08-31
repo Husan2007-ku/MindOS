@@ -26,6 +26,7 @@ openai==1.54.3
 pypdf==5.1.0
 python-docx==1.1.2
 youtube-transcript-api==0.6.2
+yt-dlp>=2024.12.6  # YouTube tez-tez o'zgaradi — yt-dlp'ni qattiq pin qilmaslik kerak, aks holda subtitr olish tez buziladi
 
 # Telegram
 python-telegram-bot==21.6

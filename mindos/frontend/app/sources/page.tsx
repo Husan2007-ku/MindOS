@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import { apiGet, apiPost, apiDelete, apiFetch } from "@/lib/api";
 import { useRequireAuth } from "@/lib/useRequireAuth";
-import { FileText, Youtube, Type, Trash2, Loader2, CheckCircle2, XCircle, Send, Library } from "lucide-react";
+import { FileText, Youtube, Type, Trash2, Loader2, CheckCircle2, XCircle, Send, Library, RotateCcw } from "lucide-react";
 
 interface SourceItem {
   id: number;
@@ -122,6 +122,19 @@ export default function SourcesPage() {
   async function handleDelete(id: number) {
     await apiDelete(`/sources/${id}`);
     setSources((prev) => prev.filter((s) => s.id !== id));
+  }
+
+  const [retryingId, setRetryingId] = useState<number | null>(null);
+  async function handleRetry(id: number) {
+    setRetryingId(id);
+    try {
+      await apiPost(`/sources/${id}/retry`);
+      await loadSources();
+    } catch (e: any) {
+      setFormError(e?.message || "Qayta urinishda xatolik");
+    } finally {
+      setRetryingId(null);
+    }
   }
 
   async function handleAsk() {
@@ -287,6 +300,12 @@ export default function SourcesPage() {
                     {s.status === "processing" && <Loader2 size={16} className="flex-shrink-0 animate-spin text-amber-500" />}
                     {s.status === "ready" && <CheckCircle2 size={16} className="flex-shrink-0 text-green-500" />}
                     {s.status === "failed" && <XCircle size={16} className="flex-shrink-0 text-red-500" />}
+                    {s.status === "failed" && s.type !== "file" && (
+                      <button onClick={() => handleRetry(s.id)} disabled={retryingId === s.id}
+                        className="flex-shrink-0 rounded-lg p-1.5 text-ink-300 hover:bg-amber-50 hover:text-amber-600 disabled:opacity-50">
+                        <RotateCcw size={16} className={retryingId === s.id ? "animate-spin" : ""} />
+                      </button>
+                    )}
                     <button onClick={() => handleDelete(s.id)} className="flex-shrink-0 rounded-lg p-1.5 text-ink-300 hover:bg-red-50 hover:text-red-500">
                       <Trash2 size={16} />
                     </button>

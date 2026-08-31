@@ -69,29 +69,124 @@ class SourceService:
 
     @staticmethod
     def extract_youtube_transcript(url: str, lang_prefs: Optional[list[str]] = None) -> str:
-        from youtube_transcript_api import YouTubeTranscriptApi
-        from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound
+        """
+        YouTube video subtitr/transcript'ini oladi — NotebookLM'dagi kabi, video
+        ovozini emas, YouTube'ning o'zi generatsiya qilgan yoki yuklab qo'yilgan
+        subtitrlarni matn sifatida ishlatamiz.
 
+        Bulutli serverlar (Render, AWS va h.k.) IP manzillari YouTube tomonidan
+        tez-tez "429 Too Many Requests" bilan vaqtincha cheklanadi — bu bizning
+        kodimizdagi xato emas, YouTube'ning anti-bot himoyasi. Shu sabab avval
+        ancha chidamli yt-dlp orqali, muvaffaqiyatsiz bo'lsa youtube-transcript-api
+        orqali (retry bilan) urinib ko'ramiz.
+        """
         video_id = SourceService.extract_youtube_video_id(url)
         if not video_id:
             raise ValueError("YouTube video ID topilmadi — link noto'g'ri bo'lishi mumkin")
 
         lang_prefs = lang_prefs or ["uz", "ru", "en"]
-        try:
-            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
-            try:
-                transcript = transcript_list.find_transcript(lang_prefs)
-            except NoTranscriptFound:
-                try:
-                    transcript = transcript_list.find_generated_transcript(lang_prefs)
-                except NoTranscriptFound:
-                    transcript = next(iter(transcript_list))
-            entries = transcript.fetch()
-        except (TranscriptsDisabled, NoTranscriptFound) as e:
-            raise ValueError(f"Bu videoda subtitr/transcript mavjud emas: {e}")
+        last_error: Exception | None = None
 
-        text = " ".join(e.get("text", "") for e in entries if e.get("text"))
-        return text.strip()
+        try:
+            text = SourceService._extract_transcript_via_ytdlp(url, lang_prefs)
+            if text.strip():
+                return text.strip()
+        except Exception as e:
+            last_error = e
+            logger.warning(f"yt-dlp orqali transcript olinmadi ({video_id}): {e}")
+
+        from youtube_transcript_api import YouTubeTranscriptApi
+        from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound
+        import time
+
+        for attempt in range(3):
+            try:
+                transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+                try:
+                    transcript = transcript_list.find_transcript(lang_prefs)
+                except NoTranscriptFound:
+                    try:
+                        transcript = transcript_list.find_generated_transcript(lang_prefs)
+                    except NoTranscriptFound:
+                        transcript = next(iter(transcript_list))
+                entries = transcript.fetch()
+                text = " ".join(e.get("text", "") for e in entries if e.get("text"))
+                if text.strip():
+                    return text.strip()
+                last_error = ValueError("Subtitr matni bo'sh qaytdi")
+                break
+            except (TranscriptsDisabled, NoTranscriptFound) as e:
+                raise ValueError(f"Bu videoda subtitr/transcript mavjud emas: {e}")
+            except Exception as e:
+                last_error = e
+                if "429" in str(e) or "Too Many Requests" in str(e):
+                    time.sleep(1.5 * (attempt + 1))
+                    continue
+                break
+
+        raise ValueError(
+            "Video subtitrlarini olib bo'lmadi — YouTube serveri vaqtincha cheklamoqda (429). "
+            "Birozdan so'ng \"Qayta urinish\"ni bosib ko'ring, yoki video mazmunini qo'lda "
+            f"\"Matn/Kurs\" bo'limi orqali qo'shing. Texnik tafsilot: {last_error}"
+        )
+
+    @staticmethod
+    def _extract_transcript_via_ytdlp(url: str, lang_prefs: list[str]) -> str:
+        import yt_dlp
+        import httpx
+
+        ydl_opts = {
+            "skip_download": True,
+            "writesubtitles": True,
+            "writeautomaticsub": True,
+            "subtitleslangs": lang_prefs,
+            "quiet": True,
+            "no_warnings": True,
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+
+        tracks: dict = {}
+        tracks.update(info.get("subtitles") or {})
+        for lang, fmts in (info.get("automatic_captions") or {}).items():
+            tracks.setdefault(lang, fmts)
+
+        chosen = None
+        for lang in lang_prefs:
+            if lang in tracks:
+                chosen = tracks[lang]
+                break
+        if chosen is None and tracks:
+            chosen = next(iter(tracks.values()))
+        if not chosen:
+            raise ValueError("yt-dlp orqali subtitr topilmadi")
+
+        fmt = next((f for f in chosen if f.get("ext") == "vtt"), chosen[0])
+        sub_url = fmt["url"]
+
+        with httpx.Client(timeout=15) as http_client:
+            resp = http_client.get(sub_url)
+            resp.raise_for_status()
+            vtt_content = resp.text
+
+        return SourceService._vtt_to_text(vtt_content)
+
+    @staticmethod
+    def _vtt_to_text(vtt_content: str) -> str:
+        """VTT/SRT subtitr faylidan vaqt belgilari va takrorlanuvchi qatorlarsiz
+        toza matn chiqaradi (YouTube avtomatik subtitrlari ko'pincha bir xil
+        qatorni bir necha marta ketma-ket takrorlaydi — "rolling captions")."""
+        text_lines: list[str] = []
+        prev: Optional[str] = None
+        for raw_line in vtt_content.splitlines():
+            line = raw_line.strip()
+            if not line or line.upper().startswith("WEBVTT") or "-->" in line or line.isdigit():
+                continue
+            line = re.sub(r"<[^>]+>", "", line).strip()
+            if line and line != prev:
+                text_lines.append(line)
+                prev = line
+        return " ".join(text_lines)
 
     # ---------- 2) Bo'laklarga bo'lish ----------
 

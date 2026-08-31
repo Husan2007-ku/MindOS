@@ -204,6 +204,44 @@ async def add_text_source(
     return {"message": "Matn qabul qilindi, qayta ishlanmoqda...", "source": _serialize_source(source)}
 
 
+@router.post("/{source_id}/retry")
+async def retry_source(
+    source_id: int,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Muvaffaqiyatsiz manbani qayta ishlashga urinish — masalan YouTube video
+    YouTube'ning vaqtinchalik "429 Too Many Requests" cheklovi tufayli
+    muvaffaqiyatsiz bo'lgan bo'lsa, foydalanuvchi qaytadan yuklamasdan shu
+    yerdan qayta urinib ko'rishi mumkin.
+    """
+    result = await db.execute(
+        select(Source).where(Source.id == source_id, Source.user_id == current_user.id)
+    )
+    source = result.scalar_one_or_none()
+    if not source:
+        raise HTTPException(status_code=404, detail="Manba topilmadi")
+
+    if source.type == SourceType.file:
+        raise HTTPException(
+            status_code=400,
+            detail="Fayl turidagi manbalarni qayta urinib bo'lmaydi — faylni qaytadan yuklang",
+        )
+
+    source.status = SourceStatus.processing
+    source.error_message = None
+    await db.commit()
+
+    if source.type == SourceType.youtube:
+        background_tasks.add_task(process_youtube_source, source_id, source.origin)
+    else:
+        background_tasks.add_task(process_text_source, source_id)
+
+    return {"message": "Qayta urinilmoqda...", "source": _serialize_source(source)}
+
+
 @router.delete("/{source_id}")
 async def delete_source(
     source_id: int,

@@ -14,7 +14,7 @@ const LEVELS = [
 interface DiagQuestion { question: string; options: string[]; }
 interface DiagResult { recommended_level: string; score_percent: number; correct_count: number; total_questions: number; reasoning: string; }
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 5;
 
 export default function OnboardingPage() {
   const { checking } = useRequireAuth();
@@ -251,46 +251,43 @@ export default function OnboardingPage() {
 
         {step===4&&(
           <>
-            <h2 style={{ fontSize:"22px", fontWeight:"700", color:"#1A1814", marginBottom:"8px" }}>Kuniga qancha vaqt?</h2>
-            <p style={{ fontSize:"14px", color:"#6B675D", marginBottom:"24px" }}>Real bo'lgan vaqtni tanlang</p>
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"8px", marginBottom:"16px" }}>
-              {[15,30,45,60].map(m=>(
-                <button key={m} onClick={()=>{setDailyMinutes(m);setCustomMinutes("");}}
-                  style={{ padding:"12px", border:`2px solid ${dailyMinutes===m&&!customMinutes?"#0F2942":"#E5DFD3"}`, borderRadius:"12px", background:dailyMinutes===m&&!customMinutes?"#0F2942":"white", color:dailyMinutes===m&&!customMinutes?"white":"#1A1814", fontFamily:"monospace", cursor:"pointer", fontWeight:"600" }}>
-                  {m}m
-                </button>
-              ))}
-            </div>
-            <div>
-              <p style={{ fontSize:"13px", color:"#6B675D", marginBottom:"8px" }}>Yoki o'zingiz kiriting:</p>
-              <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
-                <input type="number" min={5} max={240} value={customMinutes} onChange={e=>{setCustomMinutes(e.target.value);if(e.target.value)setDailyMinutes(Number(e.target.value));}} placeholder="20"
-                  style={{ width:"80px", padding:"10px 12px", border:`1.5px solid ${customMinutes?"#0F2942":"#E5DFD3"}`, borderRadius:"10px", fontSize:"15px", outline:"none", fontFamily:"monospace" }} />
-                <span style={{ color:"#6B675D", fontSize:"14px" }}>daqiqa</span>
+            <h2 style={{ fontSize:"22px", fontWeight:"700", color:"#1A1814", marginBottom:"8px" }}>Yakuniy sozlamalar</h2>
+            <p style={{ fontSize:"14px", color:"#6B675D", marginBottom:"20px" }}>Bu ma'lumotlar rejani sizga moslashtiradi</p>
+
+            <div style={{ display:"flex", flexDirection:"column", gap:"22px", maxHeight:"380px", overflowY:"auto", paddingRight:"4px" }}>
+              <div>
+                <p style={{ fontSize:"14px", fontWeight:"600", color:"#1A1814", marginBottom:"10px" }}>Kuniga qancha vaqt?</p>
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"8px", marginBottom:"10px" }}>
+                  {[15,30,45,60].map(m=>(
+                    <button key={m} onClick={()=>{setDailyMinutes(m);setCustomMinutes("");}}
+                      style={{ padding:"12px", border:`2px solid ${dailyMinutes===m&&!customMinutes?"#0F2942":"#E5DFD3"}`, borderRadius:"12px", background:dailyMinutes===m&&!customMinutes?"#0F2942":"white", color:dailyMinutes===m&&!customMinutes?"white":"#1A1814", fontFamily:"monospace", cursor:"pointer", fontWeight:"600" }}>
+                      {m}m
+                    </button>
+                  ))}
+                </div>
+                <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
+                  <input type="number" min={5} max={240} value={customMinutes} onChange={e=>{setCustomMinutes(e.target.value);if(e.target.value)setDailyMinutes(Number(e.target.value));}} placeholder="20"
+                    style={{ width:"80px", padding:"10px 12px", border:`1.5px solid ${customMinutes?"#0F2942":"#E5DFD3"}`, borderRadius:"10px", fontSize:"15px", outline:"none", fontFamily:"monospace" }} />
+                  <span style={{ color:"#6B675D", fontSize:"14px" }}>daqiqa (o'zingiz ham kiritishingiz mumkin)</span>
+                </div>
+              </div>
+
+              <div>
+                <p style={{ fontSize:"14px", fontWeight:"600", color:"#1A1814", marginBottom:"4px" }}>Hozirgi bilimingiz <span style={{ fontSize:"12px", color:"#A8A398", fontWeight:"400" }}>(ixtiyoriy)</span></p>
+                <textarea rows={2} value={currentKnowledge} onChange={e=>setCurrentKnowledge(e.target.value)} placeholder="Masalan: Men Excel bilaman, lekin kod yozmaganman"
+                  style={{ width:"100%", padding:"12px 16px", border:"1.5px solid #E5DFD3", borderRadius:"12px", fontSize:"14px", outline:"none", resize:"none", boxSizing:"border-box" }} />
+              </div>
+
+              <div>
+                <p style={{ fontSize:"14px", fontWeight:"600", color:"#1A1814", marginBottom:"4px" }}>Maqsadingiz nima? <span style={{ fontSize:"12px", color:"#A8A398", fontWeight:"400" }}>(ixtiyoriy)</span></p>
+                <textarea rows={2} value={goal} onChange={e=>setGoal(e.target.value)} placeholder="Masalan: 3 oyda ishga joylashmoqchiman"
+                  style={{ width:"100%", padding:"12px 16px", border:"1.5px solid #E5DFD3", borderRadius:"12px", fontSize:"14px", outline:"none", resize:"none", boxSizing:"border-box" }} />
               </div>
             </div>
           </>
         )}
 
         {step===5&&(
-          <>
-            <h2 style={{ fontSize:"22px", fontWeight:"700", color:"#1A1814", marginBottom:"4px" }}>Hozirgi bilimingiz <span style={{ fontSize:"13px", color:"#6B675D", fontWeight:"400" }}>(ixtiyoriy)</span></h2>
-            <p style={{ fontSize:"14px", color:"#6B675D", marginBottom:"24px" }}>AI sizga moslab reja tuzadi</p>
-            <textarea rows={3} value={currentKnowledge} onChange={e=>setCurrentKnowledge(e.target.value)} placeholder="Masalan: Men Excel bilaman, lekin kod yozmaganman"
-              style={{ width:"100%", padding:"12px 16px", border:"1.5px solid #E5DFD3", borderRadius:"12px", fontSize:"14px", outline:"none", resize:"none", boxSizing:"border-box" }} />
-          </>
-        )}
-
-        {step===6&&(
-          <>
-            <h2 style={{ fontSize:"22px", fontWeight:"700", color:"#1A1814", marginBottom:"4px" }}>Maqsadingiz nima? <span style={{ fontSize:"13px", color:"#6B675D", fontWeight:"400" }}>(ixtiyoriy)</span></h2>
-            <p style={{ fontSize:"14px", color:"#6B675D", marginBottom:"24px" }}>Bu sizni nimaga undaydi?</p>
-            <textarea rows={3} value={goal} onChange={e=>setGoal(e.target.value)} placeholder="Masalan: 3 oyda ishga joylashmoqchiman"
-              style={{ width:"100%", padding:"12px 16px", border:"1.5px solid #E5DFD3", borderRadius:"12px", fontSize:"14px", outline:"none", resize:"none", boxSizing:"border-box" }} />
-          </>
-        )}
-
-        {step===7&&(
           <>
             <h2 style={{ fontSize:"22px", fontWeight:"700", color:"#1A1814", marginBottom:"4px" }}>Sizda material bormi? <span style={{ fontSize:"13px", color:"#6B675D", fontWeight:"400" }}>(ixtiyoriy)</span></h2>
             <p style={{ fontSize:"14px", color:"#6B675D", marginBottom:"20px" }}>

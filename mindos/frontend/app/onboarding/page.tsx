@@ -140,63 +140,59 @@ export default function OnboardingPage() {
     }
   }
 
-  const s = { card:{ background:"white", borderRadius:"20px", padding:"40px", maxWidth:"560px", width:"100%", boxShadow:"0 4px 24px rgba(0,0,0,0.08)" } };
   const allAnswered = diagQuestions ? diagAnswers.every(a => a >= 0) : false;
+  const titleInputClass = "w-full px-3.5 py-[11px] border-[1.5px] border-deep-100 rounded-[10px] text-sm outline-none box-border";
 
   return (
-    <main style={{ display:"flex", minHeight:"100vh", alignItems:"center", justifyContent:"center", background:"#FAF8F4", padding:"24px" }}>
-      <div style={s.card}>
-        <div style={{ display:"flex", gap:"6px", marginBottom:"32px" }}>
+    <main className="flex min-h-screen items-center justify-center bg-paper-100 p-6">
+      <div className="bg-white rounded-[20px] p-10 max-w-[560px] w-full shadow-[0_4px_24px_rgba(0,0,0,0.08)]">
+        <div className="flex gap-1.5 mb-8">
           {Array.from({length:TOTAL_STEPS},(_,i)=>i+1).map(n=>(
-            <div key={n} style={{ flex:1, height:"4px", borderRadius:"2px", background: n<=step?"#D4A024":"#E5DFD3", transition:"background 0.3s" }} />
+            <div key={n} className={`flex-1 h-1 rounded-sm transition-colors duration-300 ${n<=step?"bg-amber-500":"bg-deep-100"}`} />
           ))}
         </div>
 
         {step===1&&(
           <>
-            <h2 style={{ fontSize:"22px", fontWeight:"700", color:"#1A1814", marginBottom:"8px" }}>Nimani o'rganmoqchisiz?</h2>
-            <p style={{ fontSize:"14px", color:"#6B675D", marginBottom:"24px" }}>Aniq mavzu yozing — Python, Ingliz tili, Marketing va h.k.</p>
+            <h2 className="text-[22px] font-bold text-ink-900 mb-2">Nimani o'rganmoqchisiz?</h2>
+            <p className="text-sm text-ink-500 mb-6">Aniq mavzu yozing — Python, Ingliz tili, Marketing va h.k.</p>
             <input autoFocus value={topic} onChange={e=>setTopic(e.target.value)} placeholder="Masalan: Python dasturlash"
-              style={{ width:"100%", padding:"12px 16px", border:"1.5px solid #E5DFD3", borderRadius:"12px", fontSize:"15px", outline:"none", boxSizing:"border-box" }} />
+              className="w-full px-4 py-3 border-[1.5px] border-deep-100 rounded-xl text-[15px] outline-none box-border" />
           </>
         )}
 
         {step===2&&(
           <>
-            <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"8px" }}>
-              <Brain size={20} color="#D4A024" />
-              <h2 style={{ fontSize:"22px", fontWeight:"700", color:"#1A1814", margin:0 }}>Tezkor diagnostika</h2>
+            <div className="flex items-center gap-2 mb-2">
+              <Brain size={20} className="text-amber-500" />
+              <h2 className="text-[22px] font-bold text-ink-900">Tezkor diagnostika</h2>
             </div>
-            <p style={{ fontSize:"14px", color:"#6B675D", marginBottom:"20px" }}>
+            <p className="text-sm text-ink-500 mb-5">
               O'zingiz taxmin qilish o'rniga, AI 4 ta savol bilan haqiqiy darajangizni aniqlaydi — bu shaxsiy rejani ancha aniqroq qiladi.
             </p>
 
             {diagLoading && (
-              <div style={{ textAlign:"center", padding:"32px 0" }}>
-                <div style={{ width:"32px", height:"32px", border:"3px solid #E5DFD3", borderTopColor:"#D4A024", borderRadius:"50%", margin:"0 auto 12px", animation:"spin 0.8s linear infinite" }} />
-                <p style={{ fontSize:"13px", color:"#6B675D" }}>"{topic}" bo'yicha test tuzilmoqda...</p>
-                <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+              <div className="text-center py-8">
+                <div className="w-8 h-8 border-[3px] border-deep-100 border-t-amber-500 rounded-full mx-auto mb-3 animate-spin" />
+                <p className="text-[13px] text-ink-500">"{topic}" bo'yicha test tuzilmoqda...</p>
               </div>
             )}
 
             {diagError && !diagLoading && (
-              <div style={{ background:"#FEF3C7", border:"1px solid #FCD34D", borderRadius:"12px", padding:"14px", marginBottom:"16px", fontSize:"13px", color:"#92400E" }}>
+              <div className="bg-[#FEF3C7] border border-[#FCD34D] rounded-xl p-3.5 mb-4 text-[13px] text-[#92400E]">
                 {diagError}
               </div>
             )}
 
             {diagQuestions && !diagLoading && (
-              <div style={{ display:"flex", flexDirection:"column", gap:"18px", maxHeight:"360px", overflowY:"auto", paddingRight:"4px" }}>
+              <div className="flex flex-col gap-[18px] max-h-[360px] overflow-y-auto pr-1">
                 {diagQuestions.map((q, qi) => (
                   <div key={qi}>
-                    <p style={{ fontSize:"14px", fontWeight:"600", color:"#1A1814", marginBottom:"8px" }}>{qi+1}. {q.question}</p>
-                    <div style={{ display:"flex", flexDirection:"column", gap:"6px" }}>
+                    <p className="text-sm font-semibold text-ink-900 mb-2">{qi+1}. {q.question}</p>
+                    <div className="flex flex-col gap-1.5">
                       {q.options.map((opt, oi) => (
                         <button key={oi} onClick={()=>selectAnswer(qi, oi)}
-                          style={{ textAlign:"left", padding:"10px 14px", borderRadius:"10px", fontSize:"13px", cursor:"pointer",
-                            border:`1.5px solid ${diagAnswers[qi]===oi?"#0F2942":"#E5DFD3"}`,
-                            background:diagAnswers[qi]===oi?"#F0F4F8":"white",
-                            color:"#1A1814" }}>
+                          className={`text-left px-3.5 py-2.5 rounded-[10px] text-[13px] cursor-pointer border-[1.5px] text-ink-900 ${diagAnswers[qi]===oi?"border-deep-900 bg-deep-50":"border-deep-100 bg-white"}`}>
                           {opt}
                         </button>
                       ))}
@@ -206,13 +202,13 @@ export default function OnboardingPage() {
               </div>
             )}
 
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:"20px" }}>
-              <button onClick={skipDiagnostic} style={{ display:"flex", alignItems:"center", gap:"6px", background:"none", border:"none", color:"#A8A398", fontSize:"13px", cursor:"pointer" }}>
+            <div className="flex justify-between items-center mt-5">
+              <button onClick={skipDiagnostic} className="flex items-center gap-1.5 bg-transparent border-none text-ink-300 text-[13px] cursor-pointer">
                 <SkipForward size={14}/> O'tkazib yuborish
               </button>
               {diagQuestions && (
                 <button onClick={submitDiagnostic} disabled={!allAnswered||scoring}
-                  style={{ padding:"10px 20px", background:"#0F2942", color:"white", border:"none", borderRadius:"10px", cursor:"pointer", fontSize:"14px", fontWeight:"600", opacity:allAnswered?1:0.5 }}>
+                  className={`px-5 py-2.5 bg-deep-900 text-white border-none rounded-[10px] cursor-pointer text-sm font-semibold ${allAnswered?"opacity-100":"opacity-50"}`}>
                   {scoring?"Tekshirilmoqda...":"Testni yakunlash"}
                 </button>
               )}
@@ -222,27 +218,27 @@ export default function OnboardingPage() {
 
         {step===3&&(
           <>
-            <h2 style={{ fontSize:"22px", fontWeight:"700", color:"#1A1814", marginBottom:"8px" }}>Hozirgi darajangiz?</h2>
+            <h2 className="text-[22px] font-bold text-ink-900 mb-2">Hozirgi darajangiz?</h2>
             {diagResult ? (
-              <div style={{ display:"flex", alignItems:"flex-start", gap:"10px", background:"#F0F4F8", border:"1px solid #C7DBE5", borderRadius:"12px", padding:"14px", marginBottom:"20px" }}>
-                <CheckCircle2 size={18} color="#0F2942" style={{ marginTop:"1px", flexShrink:0 }} />
+              <div className="flex items-start gap-[10px] bg-deep-50 border border-deep-100 rounded-xl p-3.5 mb-5">
+                <CheckCircle2 size={18} className="text-deep-900 mt-px flex-shrink-0" />
                 <div>
-                  <p style={{ fontSize:"13px", fontWeight:"600", color:"#0F2942", margin:0 }}>Diagnostika natijasi: {diagResult.correct_count}/{diagResult.total_questions} to'g'ri ({diagResult.score_percent}%)</p>
-                  <p style={{ fontSize:"13px", color:"#3D3A33", marginTop:"4px" }}>{diagResult.reasoning}</p>
+                  <p className="text-[13px] font-semibold text-deep-900">Diagnostika natijasi: {diagResult.correct_count}/{diagResult.total_questions} to'g'ri ({diagResult.score_percent}%)</p>
+                  <p className="text-[13px] text-ink-700 mt-1">{diagResult.reasoning}</p>
                 </div>
               </div>
             ) : (
-              <p style={{ fontSize:"14px", color:"#6B675D", marginBottom:"24px" }}>Bu shaxsiy reja qurishda yordam beradi</p>
+              <p className="text-sm text-ink-500 mb-6">Bu shaxsiy reja qurishda yordam beradi</p>
             )}
-            <div style={{ display:"flex", flexDirection:"column", gap:"10px" }}>
+            <div className="flex flex-col gap-[10px]">
               {LEVELS.map(l=>(
                 <button key={l.value} onClick={()=>setLevel(l.value)}
-                  style={{ padding:"14px 16px", border:`2px solid ${level===l.value?"#0F2942":"#E5DFD3"}`, borderRadius:"12px", background:level===l.value?"#F0F4F8":"white", cursor:"pointer", textAlign:"left" }}>
-                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                    <div style={{ fontWeight:"600", color:"#1A1814" }}>{l.label}</div>
-                    {diagResult?.recommended_level===l.value && <span style={{ fontSize:"11px", fontWeight:"700", color:"#B0801A", background:"#F6E8C8", padding:"2px 8px", borderRadius:"100px" }}>AI tavsiyasi</span>}
+                  className={`px-4 py-3.5 border-2 rounded-xl cursor-pointer text-left ${level===l.value?"border-deep-900 bg-deep-50":"border-deep-100 bg-white"}`}>
+                  <div className="flex items-center justify-between">
+                    <div className="font-semibold text-ink-900">{l.label}</div>
+                    {diagResult?.recommended_level===l.value && <span className="text-[11px] font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">AI tavsiyasi</span>}
                   </div>
-                  <div style={{ fontSize:"13px", color:"#6B675D" }}>{l.desc}</div>
+                  <div className="text-[13px] text-ink-500">{l.desc}</div>
                 </button>
               ))}
             </div>
@@ -251,37 +247,37 @@ export default function OnboardingPage() {
 
         {step===4&&(
           <>
-            <h2 style={{ fontSize:"22px", fontWeight:"700", color:"#1A1814", marginBottom:"8px" }}>Yakuniy sozlamalar</h2>
-            <p style={{ fontSize:"14px", color:"#6B675D", marginBottom:"20px" }}>Bu ma'lumotlar rejani sizga moslashtiradi</p>
+            <h2 className="text-[22px] font-bold text-ink-900 mb-2">Yakuniy sozlamalar</h2>
+            <p className="text-sm text-ink-500 mb-5">Bu ma'lumotlar rejani sizga moslashtiradi</p>
 
-            <div style={{ display:"flex", flexDirection:"column", gap:"22px", maxHeight:"380px", overflowY:"auto", paddingRight:"4px" }}>
+            <div className="flex flex-col gap-[22px] max-h-[380px] overflow-y-auto pr-1">
               <div>
-                <p style={{ fontSize:"14px", fontWeight:"600", color:"#1A1814", marginBottom:"10px" }}>Kuniga qancha vaqt?</p>
-                <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"8px", marginBottom:"10px" }}>
+                <p className="text-sm font-semibold text-ink-900 mb-2.5">Kuniga qancha vaqt?</p>
+                <div className="grid grid-cols-4 gap-2 mb-2.5">
                   {[15,30,45,60].map(m=>(
                     <button key={m} onClick={()=>{setDailyMinutes(m);setCustomMinutes("");}}
-                      style={{ padding:"12px", border:`2px solid ${dailyMinutes===m&&!customMinutes?"#0F2942":"#E5DFD3"}`, borderRadius:"12px", background:dailyMinutes===m&&!customMinutes?"#0F2942":"white", color:dailyMinutes===m&&!customMinutes?"white":"#1A1814", fontFamily:"monospace", cursor:"pointer", fontWeight:"600" }}>
+                      className={`p-3 border-2 rounded-xl font-mono cursor-pointer font-semibold ${dailyMinutes===m&&!customMinutes?"bg-deep-900 text-white border-deep-900":"bg-white text-ink-900 border-deep-100"}`}>
                       {m}m
                     </button>
                   ))}
                 </div>
-                <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
+                <div className="flex items-center gap-2">
                   <input type="number" min={5} max={240} value={customMinutes} onChange={e=>{setCustomMinutes(e.target.value);if(e.target.value)setDailyMinutes(Number(e.target.value));}} placeholder="20"
-                    style={{ width:"80px", padding:"10px 12px", border:`1.5px solid ${customMinutes?"#0F2942":"#E5DFD3"}`, borderRadius:"10px", fontSize:"15px", outline:"none", fontFamily:"monospace" }} />
-                  <span style={{ color:"#6B675D", fontSize:"14px" }}>daqiqa (o'zingiz ham kiritishingiz mumkin)</span>
+                    className={`w-20 px-3 py-2.5 border-[1.5px] rounded-[10px] text-[15px] outline-none font-mono ${customMinutes?"border-deep-900":"border-deep-100"}`} />
+                  <span className="text-ink-500 text-sm">daqiqa (o'zingiz ham kiritishingiz mumkin)</span>
                 </div>
               </div>
 
               <div>
-                <p style={{ fontSize:"14px", fontWeight:"600", color:"#1A1814", marginBottom:"4px" }}>Hozirgi bilimingiz <span style={{ fontSize:"12px", color:"#A8A398", fontWeight:"400" }}>(ixtiyoriy)</span></p>
+                <p className="text-sm font-semibold text-ink-900 mb-1">Hozirgi bilimingiz <span className="text-xs text-ink-300 font-normal">(ixtiyoriy)</span></p>
                 <textarea rows={2} value={currentKnowledge} onChange={e=>setCurrentKnowledge(e.target.value)} placeholder="Masalan: Men Excel bilaman, lekin kod yozmaganman"
-                  style={{ width:"100%", padding:"12px 16px", border:"1.5px solid #E5DFD3", borderRadius:"12px", fontSize:"14px", outline:"none", resize:"none", boxSizing:"border-box" }} />
+                  className="w-full px-4 py-3 border-[1.5px] border-deep-100 rounded-xl text-sm outline-none resize-none box-border" />
               </div>
 
               <div>
-                <p style={{ fontSize:"14px", fontWeight:"600", color:"#1A1814", marginBottom:"4px" }}>Maqsadingiz nima? <span style={{ fontSize:"12px", color:"#A8A398", fontWeight:"400" }}>(ixtiyoriy)</span></p>
+                <p className="text-sm font-semibold text-ink-900 mb-1">Maqsadingiz nima? <span className="text-xs text-ink-300 font-normal">(ixtiyoriy)</span></p>
                 <textarea rows={2} value={goal} onChange={e=>setGoal(e.target.value)} placeholder="Masalan: 3 oyda ishga joylashmoqchiman"
-                  style={{ width:"100%", padding:"12px 16px", border:"1.5px solid #E5DFD3", borderRadius:"12px", fontSize:"14px", outline:"none", resize:"none", boxSizing:"border-box" }} />
+                  className="w-full px-4 py-3 border-[1.5px] border-deep-100 rounded-xl text-sm outline-none resize-none box-border" />
               </div>
             </div>
           </>
@@ -289,80 +285,77 @@ export default function OnboardingPage() {
 
         {step===5&&(
           <>
-            <h2 style={{ fontSize:"22px", fontWeight:"700", color:"#1A1814", marginBottom:"4px" }}>Sizda material bormi? <span style={{ fontSize:"13px", color:"#6B675D", fontWeight:"400" }}>(ixtiyoriy)</span></h2>
-            <p style={{ fontSize:"14px", color:"#6B675D", marginBottom:"20px" }}>
+            <h2 className="text-[22px] font-bold text-ink-900 mb-1">Sizda material bormi? <span className="text-[13px] text-ink-500 font-normal">(ixtiyoriy)</span></h2>
+            <p className="text-sm text-ink-500 mb-5">
               Darslik, konspekt yoki YouTube video qo'shsangiz, AI shu mavzuni sizning HAQIQIY materialingizga asoslanib tushuntiradi.
             </p>
 
-            <div style={{ display:"flex", gap:"6px", marginBottom:"14px" }}>
+            <div className="flex gap-1.5 mb-3.5">
               {[
                 { key:"file" as const, label:"Fayl", icon:FileText },
                 { key:"youtube" as const, label:"YouTube", icon:Youtube },
                 { key:"text" as const, label:"Matn", icon:Type },
               ].map(({key,label,icon:Icon})=>(
                 <button key={key} onClick={()=>{setSourceTab(key);setSourceError("");}}
-                  style={{ display:"flex", alignItems:"center", gap:"6px", padding:"8px 14px", borderRadius:"10px", fontSize:"13px", fontWeight:"600", cursor:"pointer",
-                    border:`1.5px solid ${sourceTab===key?"#0F2942":"#E5DFD3"}`,
-                    background:sourceTab===key?"#0F2942":"white",
-                    color:sourceTab===key?"white":"#1A1814" }}>
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] text-[13px] font-semibold cursor-pointer border-[1.5px] ${sourceTab===key?"border-deep-900 bg-deep-900 text-white":"border-deep-100 bg-white text-ink-900"}`}>
                   <Icon size={14}/>{label}
                 </button>
               ))}
             </div>
 
-            {sourceError && <p style={{ color:"#DC2626", fontSize:"13px", marginBottom:"10px" }}>{sourceError}</p>}
-            {sourceAddedMsg && <p style={{ color:"#15803D", fontSize:"13px", marginBottom:"10px" }}>✓ {sourceAddedMsg}</p>}
+            {sourceError && <p className="text-red-600 text-[13px] mb-2.5">{sourceError}</p>}
+            {sourceAddedMsg && <p className="text-green-700 text-[13px] mb-2.5">✓ {sourceAddedMsg}</p>}
 
             {sourceTab==="file" && (
-              <div style={{ display:"flex", flexDirection:"column", gap:"10px" }}>
+              <div className="flex flex-col gap-2.5">
                 <input type="file" ref={fileInputRef} accept=".pdf,.docx,.txt"
-                  style={{ width:"100%", padding:"10px", border:"1.5px solid #E5DFD3", borderRadius:"10px", fontSize:"13px" }} />
+                  className="w-full p-2.5 border-[1.5px] border-deep-100 rounded-[10px] text-[13px]" />
                 <input value={sourceTitle} onChange={e=>setSourceTitle(e.target.value)} placeholder="Sarlavha (ixtiyoriy)"
-                  style={{ width:"100%", padding:"11px 14px", border:"1.5px solid #E5DFD3", borderRadius:"10px", fontSize:"14px", outline:"none", boxSizing:"border-box" }} />
-                <p style={{ fontSize:"12px", color:"#A8A398" }}>PDF, DOCX yoki TXT (20 MB gacha)</p>
+                  className={titleInputClass} />
+                <p className="text-xs text-ink-300">PDF, DOCX yoki TXT (20 MB gacha)</p>
               </div>
             )}
             {sourceTab==="youtube" && (
-              <div style={{ display:"flex", flexDirection:"column", gap:"10px" }}>
+              <div className="flex flex-col gap-2.5">
                 <input value={youtubeUrl} onChange={e=>setYoutubeUrl(e.target.value)} placeholder="https://youtube.com/watch?v=..."
-                  style={{ width:"100%", padding:"11px 14px", border:"1.5px solid #E5DFD3", borderRadius:"10px", fontSize:"14px", outline:"none", boxSizing:"border-box" }} />
+                  className={titleInputClass} />
                 <input value={sourceTitle} onChange={e=>setSourceTitle(e.target.value)} placeholder="Sarlavha (ixtiyoriy)"
-                  style={{ width:"100%", padding:"11px 14px", border:"1.5px solid #E5DFD3", borderRadius:"10px", fontSize:"14px", outline:"none", boxSizing:"border-box" }} />
+                  className={titleInputClass} />
               </div>
             )}
             {sourceTab==="text" && (
-              <div style={{ display:"flex", flexDirection:"column", gap:"10px" }}>
+              <div className="flex flex-col gap-2.5">
                 <input value={sourceTitle} onChange={e=>setSourceTitle(e.target.value)} placeholder="Sarlavha"
-                  style={{ width:"100%", padding:"11px 14px", border:"1.5px solid #E5DFD3", borderRadius:"10px", fontSize:"14px", outline:"none", boxSizing:"border-box" }} />
+                  className={titleInputClass} />
                 <textarea rows={4} value={textContent} onChange={e=>setTextContent(e.target.value)} placeholder="Matnni shu yerga joylashtiring..."
-                  style={{ width:"100%", padding:"11px 14px", border:"1.5px solid #E5DFD3", borderRadius:"10px", fontSize:"14px", outline:"none", resize:"none", boxSizing:"border-box" }} />
+                  className="w-full px-3.5 py-[11px] border-[1.5px] border-deep-100 rounded-[10px] text-sm outline-none resize-none box-border" />
               </div>
             )}
 
             <button onClick={addSourceDuringOnboarding} disabled={sourceAdding}
-              style={{ marginTop:"14px", padding:"10px 18px", background:"#F0F4F8", color:"#0F2942", border:"1.5px solid #C7DBE5", borderRadius:"10px", cursor:"pointer", fontSize:"13px", fontWeight:"600" }}>
+              className="mt-3.5 px-[18px] py-2.5 bg-deep-50 text-deep-900 border-[1.5px] border-deep-100 rounded-[10px] cursor-pointer text-[13px] font-semibold">
               {sourceAdding?"Qo'shilmoqda...":"+ Manba qo'shish"}
             </button>
           </>
         )}
 
-        {error&&<p style={{ color:"#DC2626", fontSize:"13px", marginTop:"12px" }}>{error}</p>}
+        {error&&<p className="text-red-600 text-[13px] mt-3">{error}</p>}
 
         {step!==2&&(
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:"32px" }}>
+          <div className="flex justify-between items-center mt-8">
             {step>1 ? (
-              <button onClick={()=>setStep(step-1)} style={{ padding:"10px 20px", border:"1.5px solid #E5DFD3", borderRadius:"10px", background:"white", cursor:"pointer", fontSize:"14px", color:"#6B675D" }}>
+              <button onClick={()=>setStep(step-1)} className="px-5 py-2.5 border-[1.5px] border-deep-100 rounded-[10px] bg-white cursor-pointer text-sm text-ink-500">
                 Orqaga
               </button>
             ) : <span />}
             {step<TOTAL_STEPS ? (
               <button onClick={()=>setStep(step+1)} disabled={step===1&&topic.trim().length<3}
-                style={{ padding:"12px 24px", background:"#0F2942", color:"white", border:"none", borderRadius:"12px", cursor:"pointer", fontSize:"15px", fontWeight:"600", opacity:step===1&&topic.trim().length<3?0.5:1 }}>
+                className={`px-6 py-3 bg-deep-900 text-white border-none rounded-xl cursor-pointer text-[15px] font-semibold ${step===1&&topic.trim().length<3?"opacity-50":"opacity-100"}`}>
                 Keyingisi
               </button>
             ) : (
               <button onClick={handleFinish} disabled={submitting}
-                style={{ padding:"12px 24px", background:"#D4A024", color:"#0F2942", border:"none", borderRadius:"12px", cursor:"pointer", fontSize:"15px", fontWeight:"700", display:"flex", alignItems:"center", gap:"8px" }}>
+                className="px-6 py-3 bg-amber-500 text-deep-900 border-none rounded-xl cursor-pointer text-[15px] font-bold flex items-center gap-2">
                 ✨ {submitting?"Reja tuzilmoqda...":"Rejani tuzish"}
               </button>
             )}

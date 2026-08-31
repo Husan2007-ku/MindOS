@@ -17,6 +17,7 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 logger = logging.getLogger(__name__)
 
 FREE_PLAN_DAILY_LIMIT = 10
+FREE_TTS_DAILY_LIMIT = 3  # Free foydalanuvchi ham kuniga shuncha marta ovozli javobni "tatib ko'rishi" mumkin
 MAX_VOICE_FILE_SIZE = 25 * 1024 * 1024  # 25MB — TZ 7.3 ga muvofiq
 ALLOWED_VOICE_TYPES = {"audio/mpeg", "audio/wav", "audio/x-wav", "audio/mp4", "audio/m4a", "audio/ogg", "audio/webm"}
 
@@ -170,18 +171,32 @@ async def send_voice_message(
 @router.post("/tts")
 async def text_to_speech(
     data: TTSRequest,
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """
-    Mentor javobini ovozga aylantirish (OpenAI TTS) — IELTS Speaking mashqini
-    haqiqiy suhbatga o'xshatish uchun. Ovoz input kabi Pro va undan yuqori
-    rejalarga ochiq (TZ 9.1 bilan bir xil siyosat).
+    Mentor javobini ovozga aylantirish (OpenAI TTS). Pro va undan yuqori
+    rejalarda cheklovsiz. Free rejada esa qattiq bloklash o'rniga kunlik
+    cheklangan limit beriladi — foydalanuvchi Pro imkoniyatini "tatib ko'rsin",
+    lekin cheksiz foydalanish Pro'da qoladi.
     """
+    from datetime import date
+
     if current_user.plan == "free":
-        raise HTTPException(
-            status_code=403,
-            detail="Ovozli javob faqat Pro va undan yuqori rejalarda mavjud",
-        )
+        today_str = date.today().isoformat()
+        if current_user.tts_count_date != today_str:
+            current_user.tts_count_date = today_str
+            current_user.tts_daily_count = 0
+        if current_user.tts_daily_count >= FREE_TTS_DAILY_LIMIT:
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    f"Bugungi bepul ovozli javob limiti tugadi ({FREE_TTS_DAILY_LIMIT} ta/kun). "
+                    "Pro rejada ovozli javob cheklovsiz mavjud."
+                ),
+            )
+        current_user.tts_daily_count += 1
+        await db.commit()
 
     text = data.text.strip()
     if not text:

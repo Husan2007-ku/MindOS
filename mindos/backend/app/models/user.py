@@ -93,6 +93,11 @@ class User(Base):
     telegram_link_code_expires = Column(DateTime(timezone=True), nullable=True)
     last_daily_reminder_at = Column(DateTime(timezone=True), nullable=True)
 
+    # Free rejadagi kunlik TTS (ovozli javob) limiti — 100% blok o'rniga
+    # cheklangan "pro tatib ko'rish" imkoniyati (kuniga tiklanadi)
+    tts_daily_count = Column(Integer, default=0, nullable=False)
+    tts_count_date = Column(String(10), nullable=True)  # "YYYY-MM-DD"
+
     # Relationships
     curricula = relationship("Curriculum", back_populates="user", cascade="all, delete-orphan")
     messages = relationship("Message", back_populates="user", cascade="all, delete-orphan")

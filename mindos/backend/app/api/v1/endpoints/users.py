@@ -28,6 +28,14 @@ class ChangePasswordRequest(BaseModel):
 
 @router.get("/me")
 async def get_profile(current_user: User = Depends(get_current_user)):
+    from datetime import date
+    from app.api.v1.endpoints.chat import FREE_TTS_DAILY_LIMIT
+
+    tts_remaining_today = None
+    if current_user.plan == "free":
+        used_today = current_user.tts_daily_count if current_user.tts_count_date == date.today().isoformat() else 0
+        tts_remaining_today = max(0, FREE_TTS_DAILY_LIMIT - used_today)
+
     return {
         "id": current_user.id,
         "email": current_user.email,
@@ -44,6 +52,7 @@ async def get_profile(current_user: User = Depends(get_current_user)):
         "notify_streak": current_user.notify_streak,
         "notify_sr": current_user.notify_sr,
         "created_at": current_user.created_at,
+        "tts_remaining_today": tts_remaining_today,
     }
 
 

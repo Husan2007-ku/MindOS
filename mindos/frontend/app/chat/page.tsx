@@ -4,7 +4,7 @@ import { useSearchParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import { apiGet, getAccessToken, API_ROOT } from "@/lib/api";
 import { useRequireAuth } from "@/lib/useRequireAuth";
-import { Send, Mic, Square, Code2, MessageSquare, Lightbulb, BookOpen, Languages, X } from "lucide-react";
+import { Send, Mic, Square, Code2, MessageSquare, Lightbulb, BookOpen, Languages, X, Volume2, Loader2 } from "lucide-react";
 
 interface Msg { id: string; role: "user"|"assistant"; content: string; }
 
@@ -30,6 +30,9 @@ function ChatPageInner() {
   const [recording, setRecording] = useState(false);
   const [loading, setLoading] = useState(true);
   const [plan, setPlan] = useState<string>("free");
+  const [ttsRemaining, setTtsRemaining] = useState<number|null>(null);
+  const [playingId, setPlayingId] = useState<string|null>(null);
+  const [ttsError, setTtsError] = useState<string|null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const recorderRef = useRef<MediaRecorder|null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -40,13 +43,15 @@ function ChatPageInner() {
     if (searchParams.get("mode") === "speaking_practice") setPracticeMode("speaking_practice");
   }, [searchParams]);
 
-  useEffect(() => { apiGet("/users/me").then(d => setPlan(d.plan)).catch(() => {}); }, []);
+  useEffect(() => { apiGet("/users/me").then(d => { setPlan(d.plan); setTtsRemaining(d.tts_remaining_today ?? null); }).catch(() => {}); }, []);
 
-  // IELTS Speaking mashqida Mentor javobini ovozga aylantirib eshittirish (Pro reja).
-  // Free rejada jim o'tkazib yuboriladi — /chat/tts 403 qaytaradi, lekin bu UX'ni
-  // buzmasligi uchun oldindan plan tekshiriladi.
-  async function playTTS(text: string) {
-    if (!text.trim() || plan === "free") return;
+  // Mentor javobini ovozga aylantirib eshittirish. Pro rejada cheklovsiz,
+  // Free rejada kunlik cheklangan limit bilan (backend nazorat qiladi) — shu
+  // orqali Free foydalanuvchi ham ovozli javobni "tatib ko'radi".
+  async function playTTS(text: string, msgId?: string) {
+    if (!text.trim()) return;
+    setTtsError(null);
+    if (msgId) setPlayingId(msgId);
     try {
       const token = getAccessToken();
       const res = await fetch(`${API_ROOT}/api/v1/chat/tts`, {
@@ -54,11 +59,24 @@ function ChatPageInner() {
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ text }),
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        if (res.status === 403) {
+          const data = await res.json().catch(() => null);
+          setTtsError(data?.detail || "Bugungi bepul ovozli javob limiti tugadi. Pro rejada cheklovsiz.");
+          setTtsRemaining(0);
+        }
+        return;
+      }
+      if (plan === "free") setTtsRemaining(r => (r === null ? null : Math.max(0, r - 1)));
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
-      new Audio(url).play().catch(() => {});
-    } catch {}
+      const audio = new Audio(url);
+      audio.onended = () => setPlayingId(p => (p === msgId ? null : p));
+      audio.play().catch(() => setPlayingId(p => (p === msgId ? null : p)));
+    } catch {
+    } finally {
+      if (msgId) setTimeout(() => setPlayingId(p => (p === msgId ? null : p)), 15000);
+    }
   }
 
   useEffect(() => {
@@ -141,7 +159,7 @@ function ChatPageInner() {
           try { const p = JSON.parse(line.slice(6)); if (p.token) { addToken(p.token, aid); fullText += p.token; } } catch {}
         }
       }
-      if (!code && practiceMode === "speaking_practice") playTTS(fullText);
+      if (!code && practiceMode === "speaking_practice") playTTS(fullText, aid);
     } catch { addToken("\n\n⚠️ Server bilan aloqa yo'q", aid); }
     finally { setStreaming(false); }
   }
@@ -185,7 +203,7 @@ function ChatPageInner() {
               } catch {}
             }
           }
-          if (practiceMode === "speaking_practice") playTTS(fullText);
+          if (practiceMode === "speaking_practice") playTTS(fullText, aid);
         } finally { setStreaming(false); }
       };
       rec.start(); recorderRef.current = rec; setRecording(true);
@@ -224,7 +242,17 @@ function ChatPageInner() {
         {practiceMode==="speaking_practice" && (
           <div className="flex items-center gap-2 border-b border-deep-100 bg-deep-950 px-8 py-2 text-sm text-white">
             <Languages size={15}/> IELTS Speaking rejimi yoqiq — javoblaringizni ingliz tilida yozing yoki mikrofondan gapiring
-            {plan==="free" && <span className="ml-2 text-amber-400">(Mentor javobini ovozda eshitish — Pro reja)</span>}
+          </div>
+        )}
+        {plan==="free" && ttsRemaining !== null && (
+          <div className="flex items-center gap-2 border-b border-deep-100 bg-amber-50 px-8 py-1.5 text-xs text-amber-700">
+            <Volume2 size={13}/> Bugun ovozli javobdan {ttsRemaining} marta bepul foydalanishingiz mumkin (Pro rejada cheklovsiz)
+          </div>
+        )}
+        {ttsError && (
+          <div className="flex items-center justify-between gap-2 border-b border-deep-100 bg-red-50 px-8 py-1.5 text-xs text-red-700">
+            <span>{ttsError}</span>
+            <button onClick={()=>setTtsError(null)} className="rounded-full p-0.5 hover:bg-red-100"><X size={12}/></button>
           </div>
         )}
 
@@ -252,10 +280,18 @@ function ChatPageInner() {
           ) : (
             <div className="mx-auto flex max-w-2xl flex-col gap-4">
               {messages.map(m=>(
-                <div key={m.id} className={`flex ${m.role==="user"?"justify-end":"justify-start"}`}>
+                <div key={m.id} className={`flex flex-col ${m.role==="user"?"items-end":"items-start"}`}>
                   <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${m.role==="user"?"bg-deep-900 text-white":"bg-white border border-deep-100 text-ink-900"}`}>
                     {m.content || (streaming ? <span className="animate-pulse">▋</span> : "")}
                   </div>
+                  {m.role==="assistant" && m.content && !streaming && (
+                    <button onClick={()=>playTTS(m.content, m.id)} disabled={playingId===m.id}
+                      title="Ovozda tinglash"
+                      className="mt-1 flex items-center gap-1 rounded-full px-2 py-1 text-xs text-ink-400 hover:bg-deep-50 hover:text-ink-700 disabled:opacity-60">
+                      {playingId===m.id ? <Loader2 size={13} className="animate-spin"/> : <Volume2 size={13}/>}
+                      {playingId===m.id ? "Tinglanmoqda..." : "Tinglash"}
+                    </button>
+                  )}
                 </div>
               ))}
               <div ref={bottomRef}/>

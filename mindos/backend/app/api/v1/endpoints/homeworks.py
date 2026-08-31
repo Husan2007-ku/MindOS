@@ -148,6 +148,12 @@ async def submit_homework(
         xp_gained = XP_HOMEWORK_PARTICIPATION
     await add_xp(db, current_user, xp_gained)
     new_badges = await check_and_award_badges(db, current_user)
+
+    from app.services.analytics_service import log_event, EVENT_HOMEWORK_SUBMITTED
+    await log_event(db, EVENT_HOMEWORK_SUBMITTED, user_id=current_user.id, meta={
+        "homework_id": hw.id, "score": score, "remedial_queued": remedial_queued,
+    })
+
     await db.commit()
 
     return {

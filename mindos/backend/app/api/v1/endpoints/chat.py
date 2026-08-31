@@ -203,6 +203,10 @@ async def text_to_speech(
         raise HTTPException(status_code=400, detail="Matn bo'sh bo'lishi mumkin emas")
     text = text[:MAX_TTS_CHARS]
 
+    from app.services.analytics_service import log_event, EVENT_TTS_PLAYED
+    await log_event(db, EVENT_TTS_PLAYED, user_id=current_user.id, meta={"plan": current_user.plan, "chars": len(text)})
+    await db.commit()
+
     from openai import AsyncOpenAI
     client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 

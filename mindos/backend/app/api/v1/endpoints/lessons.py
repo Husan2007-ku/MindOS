@@ -147,6 +147,11 @@ async def complete_lesson(
     await add_xp(db, current_user, XP_LESSON_COMPLETED)
     new_badges = await check_and_award_badges(db, current_user)
 
+    from app.services.analytics_service import log_event, EVENT_LESSON_COMPLETED
+    await log_event(db, EVENT_LESSON_COMPLETED, user_id=current_user.id, meta={
+        "lesson_id": lesson_id, "week": lesson.week, "day": lesson.day,
+    })
+
     await db.commit()
 
     return {

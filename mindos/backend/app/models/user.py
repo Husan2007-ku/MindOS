@@ -327,3 +327,20 @@ class UserBadge(Base):
     __table_args__ = (
         UniqueConstraint("user_id", "badge_key", name="uq_user_badge"),
     )
+
+
+# ─── AnalyticsEvent (minimal mahsulot analitikasi) ───────────────────
+# Sotib olinadigan Mixpanel/PostHog o'rniga eng arzon, o'zimizniki bo'lgan
+# yechim: har muhim "funnel" nuqtasida bitta qator yozamiz. Bu orqali
+# "foydalanuvchilar qaysi bosqichda tushib qolyapti" (masalan ro'yxatdan
+# o'tgan lekin onboarding'ni tugatmagan) va "gamifikatsiya/TTS kabi yangi
+# funksiyalar umuman ishlatilyaptimi" degan savollarga birinchi marta
+# haqiqiy raqam bilan javob berish mumkin bo'ladi.
+class AnalyticsEvent(Base):
+    __tablename__ = "analytics_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    event_type = Column(String(50), nullable=False, index=True)
+    meta = Column(JSON, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)

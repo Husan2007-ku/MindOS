@@ -72,6 +72,11 @@ async def create_checkout_session(
         raise HTTPException(status_code=400, detail="Noto'g'ri plan")
 
     price_id = PLAN_PRICE_MAP[data.plan]
+
+    from app.services.analytics_service import log_event, EVENT_CHECKOUT_STARTED
+    await log_event(db, EVENT_CHECKOUT_STARTED, user_id=current_user.id, meta={"plan": data.plan, "configured": bool(price_id)})
+    await db.commit()
+
     if not price_id:
         raise HTTPException(status_code=503, detail="To'lov tizimi sozlanmagan")
 

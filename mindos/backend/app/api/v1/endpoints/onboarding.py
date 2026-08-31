@@ -30,6 +30,7 @@ class DiagnosticScoreRequest(BaseModel):
 @router.post("/diagnostic/generate")
 async def generate_diagnostic(
     data: DiagnosticGenerateRequest,
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """
@@ -40,6 +41,9 @@ async def generate_diagnostic(
     if len(data.topic.strip()) < 3:
         raise HTTPException(status_code=400, detail="Mavzu kamida 3 ta belgidan iborat bo'lishi kerak")
 
+    from app.services.analytics_service import log_event, EVENT_DIAGNOSTIC_STARTED
+    await log_event(db, EVENT_DIAGNOSTIC_STARTED, user_id=current_user.id, meta={"topic": data.topic.strip()})
+
     from app.services.diagnostic_service import generate_diagnostic_quiz
     quiz = await generate_diagnostic_quiz(data.topic.strip(), current_user.lang.value)
     return quiz
@@ -48,6 +52,7 @@ async def generate_diagnostic(
 @router.post("/diagnostic/score")
 async def score_diagnostic(
     data: DiagnosticScoreRequest,
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """Diagnostika javoblarini baholaydi va tavsiya etilgan darajani qaytaradi."""
@@ -56,6 +61,13 @@ async def score_diagnostic(
         result = score_diagnostic_quiz(data.quiz_token, data.answers)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+    from app.services.analytics_service import log_event, EVENT_DIAGNOSTIC_COMPLETED
+    await log_event(db, EVENT_DIAGNOSTIC_COMPLETED, user_id=current_user.id, meta={
+        "recommended_level": result.get("recommended_level"),
+        "score_percent": result.get("score_percent"),
+    })
+
     return result
 
 
@@ -87,6 +99,11 @@ async def start_onboarding(
     # Foydalanuvchini onboarding tugallangan deb belgilash
     current_user.onboarding_completed = True
     await db.flush()
+
+    from app.services.analytics_service import log_event, EVENT_ONBOARDING_COMPLETED
+    await log_event(db, EVENT_ONBOARDING_COMPLETED, user_id=current_user.id, meta={
+        "topic": data.topic.strip(), "level": data.level.value, "daily_minutes": data.daily_minutes,
+    })
 
     # Background da Curriculum Agent ishga tushirish
     background_tasks.add_task(

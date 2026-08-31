@@ -9,7 +9,7 @@ from app.core.database import get_db
 from app.core.security import get_admin_user
 from app.models.user import (
     User, Subscription, Lesson, LessonStatus, Curriculum,
-    Message, Notification, NotificationChannel,
+    Message, Notification, NotificationChannel, AnalyticsEvent,
 )
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -243,4 +243,43 @@ async def send_announcement(
         "message": f"E'lon {len(users)} foydalanuvchiga rejalashtirildi, {sent_count} taga yuborildi",
         "total_users": len(users),
         "sent": sent_count,
+    }
+
+
+@router.get("/analytics/funnel")
+async def get_analytics_funnel(
+    days: int = Query(30, ge=1, le=365),
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_admin_user),
+):
+    """
+    Minimal mahsulot funnel'i — CPO tahlilida topilgan "analytics umuman
+    yo'q, ko'r-ko'rona boshqarilyapti" muammosiga javoban qo'shildi.
+
+    Har bir event_type uchun jami voqealar soni va NECHTA NOYOB
+    foydalanuvchi shu voqeani qilgani (masalan onboarding_completed'ni
+    nechta odam bosgani) qaytariladi — shu orqali eng muhim savolga javob
+    beriladi: "user_registered"dan "onboarding_completed"gacha qancha
+    foydalanuvchi tushib qolyapti.
+    """
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+
+    result = await db.execute(
+        select(
+            AnalyticsEvent.event_type,
+            func.count(AnalyticsEvent.id).label("total"),
+            func.count(func.distinct(AnalyticsEvent.user_id)).label("unique_users"),
+        )
+        .where(AnalyticsEvent.created_at >= since)
+        .group_by(AnalyticsEvent.event_type)
+        .order_by(func.count(AnalyticsEvent.id).desc())
+    )
+    rows = result.all()
+
+    return {
+        "period_days": days,
+        "events": [
+            {"event_type": r.event_type, "total": r.total, "unique_users": r.unique_users}
+            for r in rows
+        ],
     }

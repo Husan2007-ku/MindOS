@@ -75,6 +75,9 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
     db.add(user)
     await db.flush()
 
+    from app.services.analytics_service import log_event, EVENT_USER_REGISTERED
+    await log_event(db, EVENT_USER_REGISTERED, user_id=user.id, meta={"lang": user.lang, "via_telegram": bool(data.tg_id)})
+
     try:
         from app.services.email_service import EmailService
         await EmailService.send_welcome(user.email, user.full_name)

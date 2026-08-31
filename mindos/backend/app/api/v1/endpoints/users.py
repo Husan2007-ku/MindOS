@@ -6,7 +6,8 @@ from typing import Optional
 
 from app.core.database import get_db
 from app.core.security import get_current_user, hash_password
-from app.models.user import User
+from app.models.user import User, PushSubscription
+from app.core.config import settings
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -194,3 +195,54 @@ async def create_telegram_link_code(
         "link": f"https://t.me/{bot_username}?start={code}",
         "expires_in_minutes": 15,
     }
+
+
+class PushSubscribeRequest(BaseModel):
+    endpoint: str
+    keys: dict
+
+
+@router.get("/push/public-key")
+async def get_push_public_key():
+    """Frontend pushManager.subscribe() uchun VAPID public key (autentifikatsiyasiz)."""
+    return {"publicKey": settings.VAPID_PUBLIC_KEY}
+
+
+@router.post("/push/subscribe")
+async def subscribe_push(
+    data: PushSubscribeRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    keys = data.keys or {}
+    p256dh = keys.get("p256dh")
+    auth = keys.get("auth")
+    if not p256dh or not auth:
+        raise HTTPException(status_code=400, detail="Noto'g'ri subscription formati")
+
+    existing = await db.execute(select(PushSubscription).where(PushSubscription.endpoint == data.endpoint))
+    sub = existing.scalar_one_or_none()
+    if sub:
+        sub.user_id = current_user.id
+        sub.p256dh = p256dh
+        sub.auth = auth
+    else:
+        db.add(PushSubscription(user_id=current_user.id, endpoint=data.endpoint, p256dh=p256dh, auth=auth))
+    await db.commit()
+    return {"ok": True}
+
+
+@router.post("/push/unsubscribe")
+async def unsubscribe_push(
+    data: PushSubscribeRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    await db.execute(
+        delete(PushSubscription).where(
+            PushSubscription.endpoint == data.endpoint,
+            PushSubscription.user_id == current_user.id,
+        )
+    )
+    await db.commit()
+    return {"ok": True}

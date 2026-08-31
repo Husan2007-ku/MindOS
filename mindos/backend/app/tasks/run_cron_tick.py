@@ -36,6 +36,7 @@ async def run_daily_reminders():
     from sqlalchemy import select, func
     from app.core.database import AsyncSessionLocal
     from app.models.user import User, SpacedItem
+    from app.services.push_service import send_push_to_user
 
     now_utc = datetime.now(timezone.utc)
 
@@ -44,7 +45,6 @@ async def run_daily_reminders():
             select(User).where(
                 User.is_active == True,
                 User.notify_daily == True,
-                User.telegram_id.isnot(None),
             )
         )
         users = result.scalars().all()
@@ -76,7 +76,9 @@ async def run_daily_reminders():
                 msg += f"📋 {sr_count} ta kartochka takrorlashni kutmoqda\n"
             msg += "\nMindOS ga kiring va davom eting! 💪"
 
-            await _send_telegram(user.telegram_id, msg)
+            if user.telegram_id:
+                await _send_telegram(user.telegram_id, msg)
+            await send_push_to_user(db, user.id, "MindOS — dars vaqti", msg, url="/dashboard")
             user.last_daily_reminder_at = now_utc
             logger.info(f"Kunlik eslatma yuborildi: user={user.id}")
 
@@ -87,6 +89,7 @@ async def run_streak_danger_check():
     from sqlalchemy import select
     from app.core.database import AsyncSessionLocal
     from app.models.user import User
+    from app.services.push_service import send_push_to_user
 
     now_utc = datetime.now(timezone.utc)
     danger_threshold = now_utc - timedelta(hours=20)
@@ -97,18 +100,19 @@ async def run_streak_danger_check():
                 User.is_active == True,
                 User.streak > 0,
                 User.notify_streak == True,
-                User.telegram_id.isnot(None),
                 User.last_active <= danger_threshold,
             )
         )
         users = result.scalars().all()
 
         for user in users:
-            await _send_telegram(
-                user.telegram_id,
+            danger_msg = (
                 f"⚡ Streak xavfda!\n\nSening {user.streak} kunlik streaking bugun uzilishi mumkin!\n"
-                f"Bir dars qilsang, streak saqlanadi. Keling! 💪",
+                f"Bir dars qilsang, streak saqlanadi. Keling! 💪"
             )
+            if user.telegram_id:
+                await _send_telegram(user.telegram_id, danger_msg)
+            await send_push_to_user(db, user.id, "MindOS — streak xavfda!", danger_msg, url="/dashboard")
             logger.info(f"Streak xavf ogohlantirishi yuborildi: user={user.id}")
 
 

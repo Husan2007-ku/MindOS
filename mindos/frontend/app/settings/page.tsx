@@ -6,7 +6,7 @@ import { apiGet, apiPost, apiPut, apiDelete, clearTokens } from "@/lib/api";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 import { useTheme } from "@/lib/useTheme";
 import { useRouter } from "next/navigation";
-import { Sun, Moon, CreditCard, Bell, User, Shield, Send } from "lucide-react";
+import { Sun, Moon, CreditCard, Bell, BellRing, User, Shield, Send } from "lucide-react";
 
 const LANGS=[{value:"uz",label:"O'zbek"},{value:"ru",label:"Rus"},{value:"en",label:"Ingliz"}];
 interface Profile { full_name:string|null; lang:string; plan:string; notify_daily:boolean; notify_time:string; notify_streak:boolean; notify_sr:boolean; }
@@ -18,8 +18,50 @@ export default function SettingsPage() {
   const [saving,setSaving]=useState(false); const [saved,setSaved]=useState(false);
   const [tgLinked,setTgLinked]=useState(false); const [tgUsername,setTgUsername]=useState<string|null>(null);
   const [tgLink,setTgLink]=useState(""); const [tgLoading,setTgLoading]=useState(false); const [tgError,setTgError]=useState("");
+  const [pushSupported,setPushSupported]=useState(true); const [pushEnabled,setPushEnabled]=useState(false);
+  const [pushLoading,setPushLoading]=useState(false); const [pushError,setPushError]=useState("");
   useEffect(()=>{ if(checking) return; apiGet("/users/me").then(setProfile); },[checking]);
   useEffect(()=>{ if(checking) return; apiGet("/users/telegram/status").then(d=>{setTgLinked(d.linked);setTgUsername(d.telegram_username);}).catch(()=>{}); },[checking]);
+  useEffect(()=>{
+    if(checking) return;
+    if(!("serviceWorker" in navigator)||!("PushManager" in window)){ setPushSupported(false); return; }
+    navigator.serviceWorker.ready.then(reg=>reg.pushManager.getSubscription()).then(sub=>setPushEnabled(!!sub)).catch(()=>{});
+  },[checking]);
+
+  function urlBase64ToUint8Array(base64String:string){
+    const padding="=".repeat((4-(base64String.length%4))%4);
+    const base64=(base64String+padding).replace(/-/g,"+").replace(/_/g,"/");
+    const rawData=window.atob(base64);
+    const outputArray=new Uint8Array(rawData.length);
+    for(let i=0;i<rawData.length;++i) outputArray[i]=rawData.charCodeAt(i);
+    return outputArray;
+  }
+
+  async function togglePush() {
+    setPushError(""); setPushLoading(true);
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      if (pushEnabled) {
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) {
+          await apiPost("/users/push/unsubscribe", { endpoint: sub.endpoint, keys: {} });
+          await sub.unsubscribe();
+        }
+        setPushEnabled(false);
+      } else {
+        const { publicKey } = await apiGet("/users/push/public-key");
+        if (!publicKey) { setPushError("Push bildirishnoma hozircha sozlanmagan"); return; }
+        const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(publicKey) });
+        const raw:any = sub.toJSON();
+        await apiPost("/users/push/subscribe", { endpoint: raw.endpoint, keys: raw.keys });
+        setPushEnabled(true);
+      }
+    } catch (e:any) {
+      setPushError(e?.message || "Xatolik yuz berdi");
+    } finally {
+      setPushLoading(false);
+    }
+  }
 
   async function generateTelegramLink() {
     setTgError(""); setTgLoading(true);
@@ -129,6 +171,21 @@ export default function SettingsPage() {
               </>
             )}
           </div>
+
+          {/* BRAUZER PUSH BILDIRISHNOMALARI */}
+          {pushSupported && (
+            <div style={C}>
+              <div style={{ display:"flex",alignItems:"center",gap:"8px",marginBottom:"16px" }}><BellRing size={18} color="var(--accent)"/><span style={{ fontSize:"16px",fontWeight:"700",color:"var(--text-1)" }}>Brauzer bildirishnomalari</span></div>
+              <p style={{ fontSize:"14px",color:"var(--text-2)",marginBottom:"12px" }}>
+                Telegram bog'lamagan bo'lsangiz ham, shu brauzerda kunlik eslatma va streak ogohlantirishini olasiz.
+              </p>
+              <button onClick={togglePush} disabled={pushLoading}
+                style={{ padding:"10px 20px",background:pushEnabled?"var(--bg-hover)":"var(--accent)",color:pushEnabled?"var(--text-1)":"#fff",border:pushEnabled?"1px solid var(--border)":"none",borderRadius:"10px",fontSize:"14px",fontWeight:"600",cursor:"pointer" }}>
+                {pushLoading?"...":pushEnabled?"Bildirishnomani o'chirish":"Bildirishnomani yoqish"}
+              </button>
+              {pushError && <p style={{ color:"#DC2626",fontSize:"13px",marginTop:"10px" }}>{pushError}</p>}
+            </div>
+          )}
 
           {/* REJA */}
           <div style={C}>

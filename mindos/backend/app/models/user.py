@@ -344,3 +344,19 @@ class AnalyticsEvent(Base):
     event_type = Column(String(50), nullable=False, index=True)
     meta = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False, index=True)
+
+
+
+# ─── PushSubscription (Web Push bildirishnomalari) ───────────────────
+# Telegram bog'lamagan foydalanuvchilar ham (brauzer ruxsat bersa) kunlik
+# eslatma/streak-xavf ogohlantirishini olishi uchun. VAPID protokoli orqali
+# ishlaydi (app/services/push_service.py), Telegram'dan mustaqil.
+class PushSubscription(Base):
+    __tablename__ = "push_subscriptions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    endpoint = Column(String(500), unique=True, nullable=False)
+    p256dh = Column(String(255), nullable=False)
+    auth = Column(String(255), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)

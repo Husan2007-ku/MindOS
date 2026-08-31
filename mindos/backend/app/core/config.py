@@ -67,6 +67,13 @@ class Settings(BaseSettings):
     # "birinchi adminni ro'yxatdan o'tkazish" endpointi kerak emas.
     ADMIN_EMAILS: List[str] = []
 
+    # Web Push (VAPID) — Telegram bog'lamagan foydalanuvchilarga ham brauzer
+    # orqali bildirishnoma yuborish uchun. Kalitlar bir marta generatsiya qilinadi
+    # (EC P-256 juftlik) va o'zgarmaydi — o'zgarsa barcha eski obunalar bekor bo'ladi.
+    VAPID_PUBLIC_KEY: str = ""
+    VAPID_PRIVATE_KEY: str = ""
+    VAPID_CLAIM_EMAIL: str = "husankubu@gmail.com"
+
     class Config:
         env_file = ".env"
         case_sensitive = True

@@ -10,6 +10,7 @@ from app.core.config import settings
 from app.models.user import User, Message, Curriculum, Source, Lesson
 from app.services.memory_service import MemoryService
 from app.services.source_service import SourceService
+from app.services.gamification_service import add_xp, check_and_award_badges, XP_DAILY_ACTIVITY
 
 logger = logging.getLogger(__name__)
 client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
@@ -54,14 +55,15 @@ REJIM:
 
 APP_GUIDE_TEXT = """
 - Bosh sahifa (Dashboard): bugungi darsni va streak (ketma-ket o'rganilgan kunlar)ni ko'rsatadi. "Darsni boshlash" tugmasi bosilsa, shu darsni sen bilan o'rganish uchun to'g'ridan-to'g'ri shu chatga o'tkaziladi.
-- Mentor (Chat, hozir shu yerdasan): savol berish, dars o'rganish va IELTS Speaking mashqi (mikrofon tugmasi + "Speaking mashqi" rejimi) uchun asosiy joy.
+- Mentor (Chat, hozir shu yerdasan): savol berish, dars o'rganish va IELTS Speaking mashqi (mikrofon tugmasi + "IELTS Speaking mashqi" rejimi) uchun asosiy joy. Pro rejada Mentor javobini ovozda ham eshitish mumkin.
 - O'quv reja (Curriculum): barcha haftalik/kunlik darslar ro'yxati. Istalgan darsni bossa, o'sha dars bo'yicha sen bilan suhbat ochiladi.
-- Vazifalar (Homework): har darsdan keyingi yozma vazifani yozib topshirish, AI avtomatik baholaydi va fikr beradi.
+- Vazifalar (Homework): har darsdan keyingi yozma vazifani yozib topshirish, AI avtomatik baholaydi va fikr beradi — bajarilgan har bir vazifa uchun XP (tajriba ball) ham beriladi.
 - Takrorlash (Spaced repetition): unutmaslik uchun eski mavzularni ma'lum oraliqda takrorlash kartochkalari.
-- Manbalar (Sources): foydalanuvchi o'z fayli (PDF/DOCX/TXT), YouTube video yoki kurs matnini yuklaydi — shundan keyin sen va o'quv reja shu haqiqiy manbalarga asoslanib javob berasan.
-- Progress: umumiy statistikalar va haftalik hisobot.
-- Sozlamalar: til, bildirishnoma va profil sozlamalari.
-Agar foydalanuvchi "bu tugma nima qiladi", "bundan qanday foydalanaman" kabi savol bersa — shu ro'yxatga tayanib aniq va qisqa javob ber.
+- Manbalar (Sources): foydalanuvchi o'z fayli (PDF/DOCX/TXT), YouTube video yoki kurs matnini yuklaydi — shundan keyin sen va o'quv reja shu haqiqiy manbalarga asoslanib javob berasan. Onboarding (ro'yxatdan o'tishdagi so'rovnoma) oxirida ham manba qo'shish imkoniyati bor.
+- Progress: umumiy statistikalar, haftalik hisobot, XP/Level, qo'lga kiritilgan yutuqlar (badge) va boshqa foydalanuvchilar bilan reyting jadvali (leaderboard).
+- Sozlamalar: til, bildirishnoma, Telegram akkaunt bog'lash (kunlik eslatma va streak ogohlantirishi Telegram orqali keladi) va profil sozlamalari.
+- Telegram bot: Sozlamalar'dan bog'langach, bot orqali /today (bugungi dars), /streak, /progress kabi buyruqlarni ilovaga kirmasdan ham ishlatish mumkin.
+Agar foydalanuvchi "bu tugma nima qiladi", "bundan qanday foydalanaman", "XP nima", "yutuqlarni qanday olsam bo'ladi" kabi savol bersa — shu ro'yxatga tayanib aniq va qisqa javob ber.
 """.strip()
 
 IELTS_SPEAKING_INSTRUCTIONS = """
@@ -278,21 +280,26 @@ class MentorAgent:
         now = datetime.now(user_tz)
         today = now.date()
 
+        is_new_day = True
         if user.last_active:
             last_day = user.last_active.astimezone(user_tz).date()
             if last_day == today:
-                pass  # Bugun allaqachon faol — streak o'zgarmaydi
+                is_new_day = False  # Bugun allaqachon faol — streak o'zgarmaydi
             elif (today - last_day).days == 1:
                 user.streak += 1
                 if user.streak > user.max_streak:
                     user.max_streak = user.streak
             else:
                 user.streak = 1  # Streak uzildi
-
         else:
             user.streak = 1
 
         user.last_active = datetime.now(timezone.utc)
+
+        # Gamifikatsiya: kunlik faollik uchun XP + streak-asosli yutuqlarni tekshirish
+        if is_new_day:
+            await add_xp(self.db, user, XP_DAILY_ACTIVITY)
+            await check_and_award_badges(self.db, user)
 
     async def _maybe_save_memory(self, user_id: int, user_msg: str, ai_response: str):
         """

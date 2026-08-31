@@ -18,6 +18,8 @@ class RegisterRequest(BaseModel):
     password: str
     full_name: str | None = None
     lang: str = "uz"
+    tg_id: str | None = None
+    tg_username: str | None = None
 
 
 class LoginRequest(BaseModel):
@@ -60,6 +62,16 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
         full_name=data.full_name,
         lang=data.lang,
     )
+
+    # Agar foydalanuvchi Telegram bot orqali kelgan bo'lsa (bot.py /start'dagi
+    # ro'yxatdan o'tish linki: ?tg_id=...&tg_username=...) — akkauntni darhol
+    # bog'lab qo'yamiz, alohida "Telegram bog'lash" qadami kerak bo'lmaydi.
+    if data.tg_id:
+        existing_tg = await db.execute(select(User).where(User.telegram_id == data.tg_id))
+        if not existing_tg.scalar_one_or_none():
+            user.telegram_id = data.tg_id
+            user.telegram_username = data.tg_username
+
     db.add(user)
     await db.flush()
 

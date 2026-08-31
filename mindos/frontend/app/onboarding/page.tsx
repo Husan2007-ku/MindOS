@@ -1,9 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useRequireAuth } from "@/lib/useRequireAuth";
-import { apiPost } from "@/lib/api";
-import { Sparkles, Brain, SkipForward, CheckCircle2 } from "lucide-react";
+import { apiPost, apiFetch } from "@/lib/api";
+import { Sparkles, Brain, SkipForward, CheckCircle2, FileText, Youtube, Type } from "lucide-react";
 
 const LEVELS = [
   { value:"beginner", label:"Boshlang'ich", desc:"Noldan boshlayman" },
@@ -14,7 +14,7 @@ const LEVELS = [
 interface DiagQuestion { question: string; options: string[]; }
 interface DiagResult { recommended_level: string; score_percent: number; correct_count: number; total_questions: number; reasoning: string; }
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 7;
 
 export default function OnboardingPage() {
   const { checking } = useRequireAuth();
@@ -26,6 +26,17 @@ export default function OnboardingPage() {
   const [customMinutes, setCustomMinutes] = useState("");
   const [currentKnowledge, setCurrentKnowledge] = useState("");
   const [goal, setGoal] = useState("");
+
+  // --- Manba qo'shish, ixtiyoriy (foydalanuvchi so'rovi bo'yicha qo'shildi) ---
+  const [sourceTab, setSourceTab] = useState<"file"|"youtube"|"text">("file");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [sourceTitle, setSourceTitle] = useState("");
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [textContent, setTextContent] = useState("");
+  const [sourceAdding, setSourceAdding] = useState(false);
+  const [sourceAddedMsg, setSourceAddedMsg] = useState("");
+  const [sourceError, setSourceError] = useState("");
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -94,6 +105,38 @@ export default function OnboardingPage() {
       router.push("/dashboard");
     } catch (e: any) {
       setError(e?.message || "Xatolik"); setSubmitting(false);
+    }
+  }
+
+  // Onboarding paytida manba qo'shish (ixtiyoriy) — foydalanuvchi "onboarding'da
+  // manba yuklash" so'ragan edi. Curriculum hali yaratilmagan bo'lsa ham manba
+  // user_id'ga bog'lanadi va Curriculum Agent uni avtomatik topib ishlatadi
+  // (source_service.search_relevant_chunks curriculum_id talab qilmaydi).
+  async function addSourceDuringOnboarding() {
+    setSourceError(""); setSourceAddedMsg("");
+    setSourceAdding(true);
+    try {
+      if (sourceTab === "file") {
+        const file = fileInputRef.current?.files?.[0];
+        if (!file) { setSourceError("Avval fayl tanlang"); return; }
+        const form = new FormData();
+        form.append("file", file);
+        form.append("title", sourceTitle);
+        await apiFetch("/sources/upload", { method: "POST", body: form });
+      } else if (sourceTab === "youtube") {
+        if (!youtubeUrl.trim()) { setSourceError("YouTube link kiriting"); return; }
+        await apiPost("/sources/youtube", { url: youtubeUrl.trim(), title: sourceTitle.trim() });
+      } else {
+        if (textContent.trim().length < 20) { setSourceError("Matn kamida 20 belgidan iborat bo'lsin"); return; }
+        await apiPost("/sources/text", { title: sourceTitle.trim(), content: textContent.trim() });
+      }
+      setSourceAddedMsg("Manba qo'shildi! Reja shunga asoslanib tuziladi.");
+      setSourceTitle(""); setYoutubeUrl(""); setTextContent("");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } catch (e: any) {
+      setSourceError(e?.message || "Manba qo'shishda xatolik");
+    } finally {
+      setSourceAdding(false);
     }
   }
 
@@ -244,6 +287,65 @@ export default function OnboardingPage() {
             <p style={{ fontSize:"14px", color:"#6B675D", marginBottom:"24px" }}>Bu sizni nimaga undaydi?</p>
             <textarea rows={3} value={goal} onChange={e=>setGoal(e.target.value)} placeholder="Masalan: 3 oyda ishga joylashmoqchiman"
               style={{ width:"100%", padding:"12px 16px", border:"1.5px solid #E5DFD3", borderRadius:"12px", fontSize:"14px", outline:"none", resize:"none", boxSizing:"border-box" }} />
+          </>
+        )}
+
+        {step===7&&(
+          <>
+            <h2 style={{ fontSize:"22px", fontWeight:"700", color:"#1A1814", marginBottom:"4px" }}>Sizda material bormi? <span style={{ fontSize:"13px", color:"#6B675D", fontWeight:"400" }}>(ixtiyoriy)</span></h2>
+            <p style={{ fontSize:"14px", color:"#6B675D", marginBottom:"20px" }}>
+              Darslik, konspekt yoki YouTube video qo'shsangiz, AI shu mavzuni sizning HAQIQIY materialingizga asoslanib tushuntiradi.
+            </p>
+
+            <div style={{ display:"flex", gap:"6px", marginBottom:"14px" }}>
+              {[
+                { key:"file" as const, label:"Fayl", icon:FileText },
+                { key:"youtube" as const, label:"YouTube", icon:Youtube },
+                { key:"text" as const, label:"Matn", icon:Type },
+              ].map(({key,label,icon:Icon})=>(
+                <button key={key} onClick={()=>{setSourceTab(key);setSourceError("");}}
+                  style={{ display:"flex", alignItems:"center", gap:"6px", padding:"8px 14px", borderRadius:"10px", fontSize:"13px", fontWeight:"600", cursor:"pointer",
+                    border:`1.5px solid ${sourceTab===key?"#0F2942":"#E5DFD3"}`,
+                    background:sourceTab===key?"#0F2942":"white",
+                    color:sourceTab===key?"white":"#1A1814" }}>
+                  <Icon size={14}/>{label}
+                </button>
+              ))}
+            </div>
+
+            {sourceError && <p style={{ color:"#DC2626", fontSize:"13px", marginBottom:"10px" }}>{sourceError}</p>}
+            {sourceAddedMsg && <p style={{ color:"#15803D", fontSize:"13px", marginBottom:"10px" }}>✓ {sourceAddedMsg}</p>}
+
+            {sourceTab==="file" && (
+              <div style={{ display:"flex", flexDirection:"column", gap:"10px" }}>
+                <input type="file" ref={fileInputRef} accept=".pdf,.docx,.txt"
+                  style={{ width:"100%", padding:"10px", border:"1.5px solid #E5DFD3", borderRadius:"10px", fontSize:"13px" }} />
+                <input value={sourceTitle} onChange={e=>setSourceTitle(e.target.value)} placeholder="Sarlavha (ixtiyoriy)"
+                  style={{ width:"100%", padding:"11px 14px", border:"1.5px solid #E5DFD3", borderRadius:"10px", fontSize:"14px", outline:"none", boxSizing:"border-box" }} />
+                <p style={{ fontSize:"12px", color:"#A8A398" }}>PDF, DOCX yoki TXT (20 MB gacha)</p>
+              </div>
+            )}
+            {sourceTab==="youtube" && (
+              <div style={{ display:"flex", flexDirection:"column", gap:"10px" }}>
+                <input value={youtubeUrl} onChange={e=>setYoutubeUrl(e.target.value)} placeholder="https://youtube.com/watch?v=..."
+                  style={{ width:"100%", padding:"11px 14px", border:"1.5px solid #E5DFD3", borderRadius:"10px", fontSize:"14px", outline:"none", boxSizing:"border-box" }} />
+                <input value={sourceTitle} onChange={e=>setSourceTitle(e.target.value)} placeholder="Sarlavha (ixtiyoriy)"
+                  style={{ width:"100%", padding:"11px 14px", border:"1.5px solid #E5DFD3", borderRadius:"10px", fontSize:"14px", outline:"none", boxSizing:"border-box" }} />
+              </div>
+            )}
+            {sourceTab==="text" && (
+              <div style={{ display:"flex", flexDirection:"column", gap:"10px" }}>
+                <input value={sourceTitle} onChange={e=>setSourceTitle(e.target.value)} placeholder="Sarlavha"
+                  style={{ width:"100%", padding:"11px 14px", border:"1.5px solid #E5DFD3", borderRadius:"10px", fontSize:"14px", outline:"none", boxSizing:"border-box" }} />
+                <textarea rows={4} value={textContent} onChange={e=>setTextContent(e.target.value)} placeholder="Matnni shu yerga joylashtiring..."
+                  style={{ width:"100%", padding:"11px 14px", border:"1.5px solid #E5DFD3", borderRadius:"10px", fontSize:"14px", outline:"none", resize:"none", boxSizing:"border-box" }} />
+              </div>
+            )}
+
+            <button onClick={addSourceDuringOnboarding} disabled={sourceAdding}
+              style={{ marginTop:"14px", padding:"10px 18px", background:"#F0F4F8", color:"#0F2942", border:"1.5px solid #C7DBE5", borderRadius:"10px", cursor:"pointer", fontSize:"13px", fontWeight:"600" }}>
+              {sourceAdding?"Qo'shilmoqda...":"+ Manba qo'shish"}
+            </button>
           </>
         )}
 

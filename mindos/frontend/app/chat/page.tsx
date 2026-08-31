@@ -29,6 +29,7 @@ function ChatPageInner() {
   const [streaming, setStreaming] = useState(false);
   const [recording, setRecording] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [plan, setPlan] = useState<string>("free");
   const bottomRef = useRef<HTMLDivElement>(null);
   const recorderRef = useRef<MediaRecorder|null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -38,6 +39,27 @@ function ChatPageInner() {
     if (lp) setLessonId(Number(lp));
     if (searchParams.get("mode") === "speaking_practice") setPracticeMode("speaking_practice");
   }, [searchParams]);
+
+  useEffect(() => { apiGet("/users/me").then(d => setPlan(d.plan)).catch(() => {}); }, []);
+
+  // IELTS Speaking mashqida Mentor javobini ovozga aylantirib eshittirish (Pro reja).
+  // Free rejada jim o'tkazib yuboriladi — /chat/tts 403 qaytaradi, lekin bu UX'ni
+  // buzmasligi uchun oldindan plan tekshiriladi.
+  async function playTTS(text: string) {
+    if (!text.trim() || plan === "free") return;
+    try {
+      const token = getAccessToken();
+      const res = await fetch(`${API_ROOT}/api/v1/chat/tts`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      new Audio(url).play().catch(() => {});
+    } catch {}
+  }
 
   useEffect(() => {
     if (checking) return;
@@ -107,6 +129,7 @@ function ChatPageInner() {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buf = "";
+      let fullText = "";
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -115,9 +138,10 @@ function ChatPageInner() {
         buf = lines.pop() || "";
         for (const line of lines) {
           if (!line.startsWith("data: ")) continue;
-          try { const p = JSON.parse(line.slice(6)); if (p.token) addToken(p.token, aid); } catch {}
+          try { const p = JSON.parse(line.slice(6)); if (p.token) { addToken(p.token, aid); fullText += p.token; } } catch {}
         }
       }
+      if (!code && practiceMode === "speaking_practice") playTTS(fullText);
     } catch { addToken("\n\n⚠️ Server bilan aloqa yo'q", aid); }
     finally { setStreaming(false); }
   }
@@ -145,6 +169,7 @@ function ChatPageInner() {
           const reader = res.body.getReader();
           const decoder = new TextDecoder();
           let buf = "";
+          let fullText = "";
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
@@ -156,10 +181,11 @@ function ChatPageInner() {
               try {
                 const p = JSON.parse(line.slice(6));
                 if (p.transcript) setMessages(prev => prev.map(m => m.id === uid ? { ...m, content: p.transcript } : m));
-                if (p.token) addToken(p.token, aid);
+                if (p.token) { addToken(p.token, aid); fullText += p.token; }
               } catch {}
             }
           }
+          if (practiceMode === "speaking_practice") playTTS(fullText);
         } finally { setStreaming(false); }
       };
       rec.start(); recorderRef.current = rec; setRecording(true);
@@ -198,6 +224,7 @@ function ChatPageInner() {
         {practiceMode==="speaking_practice" && (
           <div className="flex items-center gap-2 border-b border-deep-100 bg-deep-950 px-8 py-2 text-sm text-white">
             <Languages size={15}/> IELTS Speaking rejimi yoqiq — javoblaringizni ingliz tilida yozing yoki mikrofondan gapiring
+            {plan==="free" && <span className="ml-2 text-amber-400">(Mentor javobini ovozda eshitish — Pro reja)</span>}
           </div>
         )}
 

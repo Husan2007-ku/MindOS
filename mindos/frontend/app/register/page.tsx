@@ -1,11 +1,14 @@
 "use client";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { setTokens, API_BASE } from "@/lib/api";
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const tgId = searchParams.get("tg_id");
+  const tgUsername = searchParams.get("tg_username");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,7 +21,7 @@ export default function RegisterPage() {
       const res = await fetch(`${API_BASE}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, full_name: fullName, lang: "uz" }),
+        body: JSON.stringify({ email, password, full_name: fullName, lang: "uz", tg_id: tgId, tg_username: tgUsername }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.detail || "Xatolik yuz berdi"); return; }
@@ -60,4 +63,8 @@ export default function RegisterPage() {
       </div>
     </main>
   );
+}
+
+export default function RegisterPage() {
+  return <Suspense fallback={null}><RegisterForm /></Suspense>;
 }

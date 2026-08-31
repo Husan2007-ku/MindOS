@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import Optional
 from sqlalchemy import (
     Column, Integer, String, Boolean, DateTime, Float,
-    Text, ForeignKey, JSON, Enum as SAEnum
+    Text, ForeignKey, JSON, Enum as SAEnum, UniqueConstraint
 )
 from sqlalchemy.orm import relationship
 import enum
@@ -85,6 +85,14 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
     updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
+    # Gamifikatsiya (XP/yutuqlar)
+    xp = Column(Integer, default=0, nullable=False)
+
+    # Telegram akkaunt bog'lash (mavjud foydalanuvchi uchun bir martalik kod)
+    telegram_link_code = Column(String(16), unique=True, nullable=True, index=True)
+    telegram_link_code_expires = Column(DateTime(timezone=True), nullable=True)
+    last_daily_reminder_at = Column(DateTime(timezone=True), nullable=True)
+
     # Relationships
     curricula = relationship("Curriculum", back_populates="user", cascade="all, delete-orphan")
     messages = relationship("Message", back_populates="user", cascade="all, delete-orphan")
@@ -93,6 +101,7 @@ class User(Base):
     subscriptions = relationship("Subscription", back_populates="user", cascade="all, delete-orphan")
     notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
     sources = relationship("Source", back_populates="user", cascade="all, delete-orphan")
+    badges = relationship("UserBadge", back_populates="user", cascade="all, delete-orphan")
 
 
 # ─── Curriculum ───────────────────────────────────────────
@@ -294,3 +303,22 @@ class SourceChunk(Base):
     embedding = Column(Vector(1536), nullable=True)  # text-embedding-3-small
 
     source = relationship("Source", back_populates="chunks")
+
+
+# ─── UserBadge (Gamifikatsiya yutuqlari) ───────────────────
+# Yutuqlar katalogi (nom, tavsif, ikonka) kodda staitk saqlanadi
+# (app/services/gamification_service.py, BADGE_CATALOG) — bu jadval faqat
+# foydalanuvchi qaysi badge_key'larni QACHON qo'lga kiritganini saqlaydi.
+class UserBadge(Base):
+    __tablename__ = "user_badges"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    badge_key = Column(String(50), nullable=False)
+    earned_at = Column(DateTime(timezone=True), default=utcnow, nullable=False)
+
+    user = relationship("User", back_populates="badges")
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "badge_key", name="uq_user_badge"),
+    )

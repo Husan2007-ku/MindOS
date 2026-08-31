@@ -6,6 +6,8 @@ logger = logging.getLogger(__name__)
 
 resend.api_key = settings.RESEND_API_KEY
 
+_FALLBACK_NAME = "do\u02bbst"  # f-string expression ichida backslash bo'lishi mumkin emas (Python <3.12)
+
 
 class EmailService:
     """
@@ -53,7 +55,7 @@ class EmailService:
     async def send_weekly_report(cls, to: str, full_name: str, report_text: str) -> bool:
         """TZ 3.4 Progress Agent — telegram_id yo'q foydalanuvchilar uchun email fallback"""
         body = f"""
-          <h2 style="color: #0F2942; margin-top: 0;">Salom, {full_name or 'do\u02bbst'}! 📊</h2>
+          <h2 style="color: #0F2942; margin-top: 0;">Salom, {full_name or _FALLBACK_NAME}! 📊</h2>
           <p style="color: #3D3A33; line-height: 1.6;">{report_text}</p>
           <a href="https://mindos.uz/progress" style="display: inline-block; margin-top: 16px; background: #0F2942; color: white; padding: 10px 20px; border-radius: 10px; text-decoration: none;">
             Progressni ko'rish
@@ -96,7 +98,7 @@ class EmailService:
     async def send_welcome(cls, to: str, full_name: str) -> bool:
         """Ro'yxatdan o'tgandan keyin xush kelibsiz xabari"""
         body = f"""
-          <h2 style="color: #0F2942; margin-top: 0;">Xush kelibsiz, {full_name or 'do\u02bbst'}! 👋</h2>
+          <h2 style="color: #0F2942; margin-top: 0;">Xush kelibsiz, {full_name or _FALLBACK_NAME}! 👋</h2>
           <p style="color: #3D3A33; line-height: 1.6;">
             MindOS — sizning shaxsiy AI mentoringiz. Onboarding orqali shaxsiy o'quv reja tuzib,
             bugundan o'rganishni boshlang.

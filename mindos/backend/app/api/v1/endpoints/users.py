@@ -125,3 +125,62 @@ async def delete_account(
     await db.execute(delete(User).where(User.id == current_user.id))
     await db.commit()
     return {"message": "Akkaunt muvaffaqiyatli o'chirildi"}
+
+
+@router.get("/telegram/status")
+async def telegram_status(current_user: User = Depends(get_current_user)):
+    return {
+        "linked": bool(current_user.telegram_id),
+        "telegram_username": current_user.telegram_username,
+    }
+
+
+_bot_username_cache: dict[str, str] = {}
+
+
+async def _get_bot_username() -> str | None:
+    from app.core.config import settings
+    if not settings.TELEGRAM_BOT_TOKEN:
+        return None
+    if "username" in _bot_username_cache:
+        return _bot_username_cache["username"]
+    import httpx
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            res = await client.get(f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/getMe")
+            data = res.json()
+            username = data.get("result", {}).get("username")
+            if username:
+                _bot_username_cache["username"] = username
+            return username
+    except Exception:
+        return None
+
+
+@router.post("/telegram/link-code")
+async def create_telegram_link_code(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Mavjud (email bilan ro'yxatdan o'tgan) foydalanuvchi uchun Telegram
+    akkauntini bog'lash uchun bir martalik kod + deep-link generatsiya qiladi.
+    Foydalanuvchi shu linkni bossa, bot /start orqali kodni tekshirib
+    telegram_id'ni akkauntga bog'laydi (app/telegram_bot/bot.py).
+    """
+    import secrets
+    from datetime import datetime, timezone, timedelta
+
+    bot_username = await _get_bot_username()
+    if not bot_username:
+        raise HTTPException(status_code=503, detail="Telegram bot hozircha sozlanmagan")
+
+    code = secrets.token_urlsafe(8)
+    current_user.telegram_link_code = code
+    current_user.telegram_link_code_expires = datetime.now(timezone.utc) + timedelta(minutes=15)
+    await db.commit()
+
+    return {
+        "link": f"https://t.me/{bot_username}?start={code}",
+        "expires_in_minutes": 15,
+    }

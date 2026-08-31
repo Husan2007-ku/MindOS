@@ -17,6 +17,39 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     telegram_username = update.effective_user.username
 
     async with AsyncSessionLocal() as db:
+        # Agar /start bir martalik bog'lash kodi bilan chaqirilgan bo'lsa (mavjud,
+        # web'da ro'yxatdan o'tgan foydalanuvchi Sozlamalar'dan "Telegram bog'lash"ni
+        # bosgan holat) — shu kodni tekshirib akkauntni bog'laymiz.
+        link_code = context.args[0] if context.args else None
+        if link_code:
+            now = datetime.now(timezone.utc)
+            code_result = await db.execute(
+                select(User).where(User.telegram_link_code == link_code)
+            )
+            pending_user = code_result.scalar_one_or_none()
+            if (
+                pending_user
+                and pending_user.telegram_link_code_expires
+                and pending_user.telegram_link_code_expires > now
+            ):
+                pending_user.telegram_id = telegram_id
+                pending_user.telegram_username = telegram_username
+                pending_user.telegram_link_code = None
+                pending_user.telegram_link_code_expires = None
+                await db.commit()
+                await update.message.reply_text(
+                    f"✅ Telegram akkauntingiz MindOS bilan bog'landi, {pending_user.full_name or 'dost'}!\n\n"
+                    f"🎯 Streak: {pending_user.streak} kun\n"
+                    f"/today — bugungi dars\n"
+                    f"/help — barcha buyruqlar"
+                )
+                return
+            else:
+                await update.message.reply_text(
+                    "⚠️ Bog'lash kodi eskirgan yoki noto'g'ri. Ilovadagi Sozlamalar sahifasidan yangi link oling."
+                )
+                return
+
         result = await db.execute(select(User).where(User.telegram_id == telegram_id))
         user = result.scalar_one_or_none()
 
@@ -35,7 +68,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "Men sizning shaxsiy AI mentoringizman. Sizga har kuni dars o'taman, "
                 "vazifa beraman va unutishingizdan oldin eslataman.\n\n"
                 f"Ro'yxatdan o'tish uchun: {link}\n\n"
-                "Ro'yxatdan o'tgach, /start ni qayta bosing."
+                "Agar allaqachon MindOS'da hisobingiz bo'lsa — Sozlamalar sahifasidan "
+                "\"Telegram bog'lash\" tugmasini bosing."
             )
 
 

@@ -4,7 +4,7 @@ import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
 import { apiGet } from "@/lib/api";
 import { useRequireAuth } from "@/lib/useRequireAuth";
-import { Flame, Share2, TrendingUp, Brain, BookOpen, Award, Target } from "lucide-react";
+import { Flame, Share2, TrendingUp, Brain, BookOpen, Award, Target, Trophy, Lock } from "lucide-react";
 
 interface DayActivity { date: string; label: string; messages: number; lessons_completed: number; }
 interface MasteryItem {
@@ -13,6 +13,8 @@ interface MasteryItem {
   completion_percent: number; avg_homework_score: number | null;
   retention_index: number; mastery_score: number; certificate_eligible: boolean;
 }
+interface BadgeItem { key: string; title: string; description: string; icon: string; earned: boolean; earned_at: string | null; }
+interface LeaderRow { rank: number; user_id: number; name: string; xp: number; level: number; is_me: boolean; }
 
 export default function ProgressPage() {
   const { checking } = useRequireAuth();
@@ -22,6 +24,11 @@ export default function ProgressPage() {
   const [sr, setSr] = useState({ total_cards:0, retention_rate:0 });
   const [daily, setDaily] = useState<DayActivity[]>([]);
   const [mastery, setMastery] = useState<MasteryItem[]>([]);
+  const [badges, setBadges] = useState<BadgeItem[]>([]);
+  const [xp, setXp] = useState(0);
+  const [level, setLevel] = useState(1);
+  const [leaderboard, setLeaderboard] = useState<LeaderRow[]>([]);
+  const [myRank, setMyRank] = useState<{rank:number|null; xp:number}|null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,10 +40,14 @@ export default function ProgressPage() {
       apiGet("/spaced-repetition/stats"),
       apiGet("/progress/daily-activity"),
       apiGet("/progress/mastery"),
+      apiGet("/gamification/me"),
+      apiGet("/gamification/leaderboard"),
     ])
-      .then(([w,m,s,srData,d,ms])=>{
+      .then(([w,m,s,srData,d,ms,gam,lb])=>{
         setWeekly(w); setMonthly(m); setStreak(s); setSr(srData);
         setDaily(d.days || []); setMastery(ms.curricula || []);
+        setBadges(gam.badges || []); setXp(gam.xp || 0); setLevel(gam.level || 1);
+        setLeaderboard(lb.top || []); setMyRank(lb.me || null);
       })
       .finally(()=>setLoading(false));
   }, [checking]);
@@ -145,6 +156,57 @@ export default function ProgressPage() {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Gamifikatsiya: XP/Level, yutuqlar, reyting jadvali */}
+        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+          <div className="rounded-2xl border border-deep-100 bg-white p-6">
+            <div className="mb-1 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Award size={18} className="text-amber-500" />
+                <h3 className="font-semibold text-deep-950">Yutuqlar</h3>
+              </div>
+              <span className="font-mono text-sm text-ink-500">⭐ {xp} XP • Level {level}</span>
+            </div>
+            <p className="mb-4 text-xs text-ink-400">{badges.filter(b=>b.earned).length}/{badges.length} ta yutuq qo'lga kiritildi</p>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {badges.map(b => (
+                <div key={b.key} title={b.description}
+                  className={`flex flex-col items-center gap-1 rounded-xl border p-3 text-center ${b.earned ? "border-amber-200 bg-amber-50" : "border-deep-100 bg-deep-50 opacity-50"}`}>
+                  <span className="text-2xl">{b.earned ? b.icon : <Lock size={20} className="text-ink-300" />}</span>
+                  <span className="text-[11px] font-medium leading-tight text-deep-950">{b.title}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-deep-100 bg-white p-6">
+            <div className="mb-4 flex items-center gap-2">
+              <Trophy size={18} className="text-amber-500" />
+              <h3 className="font-semibold text-deep-950">Reyting jadvali</h3>
+            </div>
+            {leaderboard.length === 0 ? (
+              <p className="text-sm text-ink-500">Hali reyting yo'q.</p>
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                {leaderboard.map(row => (
+                  <div key={row.user_id} className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm ${row.is_me ? "bg-amber-50 font-semibold" : ""}`}>
+                    <span className="flex items-center gap-2 text-deep-950">
+                      <span className="w-5 text-ink-400">{row.rank}.</span>
+                      {row.name}{row.is_me && <span className="text-xs text-amber-600">(siz)</span>}
+                    </span>
+                    <span className="font-mono text-xs text-ink-500">{row.xp} XP</span>
+                  </div>
+                ))}
+                {myRank && myRank.rank && !leaderboard.some(r=>r.is_me) && (
+                  <div className="mt-1 flex items-center justify-between rounded-lg bg-amber-50 px-3 py-2 text-sm font-semibold">
+                    <span className="flex items-center gap-2 text-deep-950"><span className="w-5 text-ink-400">{myRank.rank}.</span>Siz</span>
+                    <span className="font-mono text-xs text-ink-500">{myRank.xp} XP</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </main>
     </div>

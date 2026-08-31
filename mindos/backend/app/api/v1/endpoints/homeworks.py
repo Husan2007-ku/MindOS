@@ -10,6 +10,10 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.core.config import settings
 from app.models.user import User, Homework, Lesson
+from app.services.gamification_service import (
+    add_xp, check_and_award_badges,
+    XP_HOMEWORK_EXCELLENT, XP_HOMEWORK_OK, XP_HOMEWORK_PARTICIPATION,
+)
 
 router = APIRouter(prefix="/homeworks", tags=["homeworks"])
 logger = logging.getLogger(__name__)
@@ -136,12 +140,24 @@ async def submit_homework(
         )
         remedial_queued = True
 
+    if score >= 80:
+        xp_gained = XP_HOMEWORK_EXCELLENT
+    elif score >= 50:
+        xp_gained = XP_HOMEWORK_OK
+    else:
+        xp_gained = XP_HOMEWORK_PARTICIPATION
+    await add_xp(db, current_user, xp_gained)
+    new_badges = await check_and_award_badges(db, current_user)
+    await db.commit()
+
     return {
         "id": hw.id,
         "score": score,
         "ai_feedback": feedback,
         "message": "Vazifa baholandi!",
         "remedial_lesson_queued": remedial_queued,
+        "xp_gained": xp_gained,
+        "new_badges": new_badges,
     }
 
 

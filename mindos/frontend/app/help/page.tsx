@@ -4,7 +4,7 @@ import Sidebar from "@/components/Sidebar";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 import {
   LayoutDashboard, MessageCircle, BookOpen, ClipboardCheck, Repeat2,
-  TrendingUp, Library, Languages, Mic, ArrowRight, Sparkles,
+  TrendingUp, Library, Languages, Mic, ArrowRight, Sparkles, Award, Send,
 } from "lucide-react";
 
 const SECTIONS = [
@@ -47,7 +47,17 @@ const SECTIONS = [
   {
     icon: TrendingUp,
     title: "Progress",
-    body: "Umumiy statistika: necha dars tugallandi, haftalik hisobot, mastery darajangiz.",
+    body: "Umumiy statistika: necha dars tugallandi, haftalik hisobot, mastery darajangiz — shu yerda XP/Level, qo'lga kiritgan yutuqlaringiz (badge) va boshqa foydalanuvchilar bilan reyting jadvalini ham ko'rasiz.",
+  },
+  {
+    icon: Award,
+    title: "Gamifikatsiya (XP va yutuqlar)",
+    body: "Dars tugatish, vazifa topshirish va har kungi faollik uchun XP (tajriba ball) olasiz — XP oshgani sari Level ko'tariladi. Muayyan bosqichlarga yetganingizda (masalan 7 kunlik streak, 10 ta dars) avtomatik yutuq (badge) qo'lga kiritasiz — bularning barchasi Progress sahifasida ko'rinadi.",
+  },
+  {
+    icon: Send,
+    title: "Telegram bot",
+    body: "Sozlamalar sahifasidan \"Telegram bog'lash\" tugmasini bosib akkauntingizni bog'lang — shundan keyin bot orqali /today (bugungi dars), /streak, /progress kabi buyruqlarni ilovani ochmasdan ham ishlatishingiz, kunlik eslatma va streak ogohlantirishlarini olishingiz mumkin.",
   },
 ];
 

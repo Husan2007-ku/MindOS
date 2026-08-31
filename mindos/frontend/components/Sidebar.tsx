@@ -23,7 +23,10 @@ export default function Sidebar() {
   const { theme, toggle }=useTheme();
   const [streak,setStreak]=useState<number|null>(null);
   const [name,setName]=useState("");
+  const [xp,setXp]=useState<number|null>(null);
+  const [level,setLevel]=useState<number|null>(null);
   useEffect(()=>{ apiGet("/users/me").then(d=>{setStreak(d.streak);setName(d.full_name?.split(" ")[0]||"");}).catch(()=>{}); },[]);
+  useEffect(()=>{ apiGet("/gamification/me").then(d=>{setXp(d.xp);setLevel(d.level);}).catch(()=>{}); },[]);
   function logout(){ clearTokens(); router.push("/"); }
   return (
     <aside style={{ display:"flex",height:"100vh",width:"256px",flexDirection:"column",padding:"24px 16px",background:"var(--bg-sidebar)",borderRight:"1px solid var(--border)",flexShrink:0 }}>
@@ -31,9 +34,15 @@ export default function Sidebar() {
         <span style={{ fontSize:"22px",fontWeight:"800",color:"var(--accent)" }}>MindOS</span>
       </Link>
       {streak!==null&&(
-        <div style={{ display:"flex",alignItems:"center",gap:"8px",background:"var(--amber-light)",borderRadius:"12px",padding:"10px 12px",marginBottom:"16px" }}>
+        <div style={{ display:"flex",alignItems:"center",gap:"8px",background:"var(--amber-light)",borderRadius:"12px",padding:"10px 12px",marginBottom:xp!==null?"6px":"16px" }}>
           <Flame size={16} color={streak>=7?"#EF4444":"#F59E0B"}/>
           <div><p style={{ fontSize:"11px",color:"var(--text-2)",margin:0 }}>{name}</p><p style={{ fontSize:"14px",fontWeight:"700",color:"var(--text-1)",margin:0,fontFamily:"monospace" }}>{streak} kun streak</p></div>
+        </div>
+      )}
+      {xp!==null&&(
+        <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 4px",marginBottom:"16px",fontSize:"11px",color:"var(--text-2)",fontFamily:"monospace" }}>
+          <span>⭐ {xp} XP</span>
+          <span>Level {level}</span>
         </div>
       )}
       <nav style={{ flex:1,display:"flex",flexDirection:"column",gap:"2px" }}>

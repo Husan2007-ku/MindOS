@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User, Lesson, LessonStatus, Curriculum, SpacedItem, Homework
+from app.services.gamification_service import add_xp, check_and_award_badges, XP_LESSON_COMPLETED
 
 router = APIRouter(prefix="/lessons", tags=["lessons"])
 
@@ -143,10 +144,15 @@ async def complete_lesson(
         )
         db.add(hw)
 
+    await add_xp(db, current_user, XP_LESSON_COMPLETED)
+    new_badges = await check_and_award_badges(db, current_user)
+
     await db.commit()
 
     return {
         "message": "Dars tugallandi! 🎉",
         "sr_cards_created": sr_cards_created,
         "homework_created": bool(homework_q),
+        "xp_gained": XP_LESSON_COMPLETED,
+        "new_badges": new_badges,
     }

@@ -27,6 +27,13 @@ class ChatRequest(BaseModel):
     mode: str = "normal"
 
 
+class TTSRequest(BaseModel):
+    text: str
+
+
+MAX_TTS_CHARS = 2000
+
+
 @router.post("/message")
 async def send_message(
     data: ChatRequest,
@@ -158,6 +165,46 @@ async def send_voice_message(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@router.post("/tts")
+async def text_to_speech(
+    data: TTSRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Mentor javobini ovozga aylantirish (OpenAI TTS) — IELTS Speaking mashqini
+    haqiqiy suhbatga o'xshatish uchun. Ovoz input kabi Pro va undan yuqori
+    rejalarga ochiq (TZ 9.1 bilan bir xil siyosat).
+    """
+    if current_user.plan == "free":
+        raise HTTPException(
+            status_code=403,
+            detail="Ovozli javob faqat Pro va undan yuqori rejalarda mavjud",
+        )
+
+    text = data.text.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Matn bo'sh bo'lishi mumkin emas")
+    text = text[:MAX_TTS_CHARS]
+
+    from openai import AsyncOpenAI
+    client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+
+    try:
+        response = await client.audio.speech.create(
+            model="tts-1",
+            voice="alloy",
+            input=text,
+            response_format="mp3",
+        )
+        audio_bytes = response.content
+    except Exception as e:
+        logger.error(f"TTS xatosi: {e}")
+        raise HTTPException(status_code=502, detail="Ovozli javob generatsiya qilinmadi")
+
+    import io
+    return StreamingResponse(io.BytesIO(audio_bytes), media_type="audio/mpeg")
 
 
 async def _transcribe_audio(raw_bytes: bytes, filename: str) -> str:

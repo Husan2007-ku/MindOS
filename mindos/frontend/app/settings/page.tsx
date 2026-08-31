@@ -2,11 +2,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Sidebar from "@/components/Sidebar";
-import { apiGet, apiPut, apiDelete, clearTokens } from "@/lib/api";
+import { apiGet, apiPost, apiPut, apiDelete, clearTokens } from "@/lib/api";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 import { useTheme } from "@/lib/useTheme";
 import { useRouter } from "next/navigation";
-import { Sun, Moon, CreditCard, Bell, User, Shield } from "lucide-react";
+import { Sun, Moon, CreditCard, Bell, User, Shield, Send } from "lucide-react";
 
 const LANGS=[{value:"uz",label:"O'zbek"},{value:"ru",label:"Rus"},{value:"en",label:"Ingliz"}];
 interface Profile { full_name:string|null; lang:string; plan:string; notify_daily:boolean; notify_time:string; notify_streak:boolean; notify_sr:boolean; }
@@ -16,7 +16,22 @@ export default function SettingsPage() {
   const { theme, toggle }=useTheme();
   const [profile,setProfile]=useState<Profile|null>(null);
   const [saving,setSaving]=useState(false); const [saved,setSaved]=useState(false);
+  const [tgLinked,setTgLinked]=useState(false); const [tgUsername,setTgUsername]=useState<string|null>(null);
+  const [tgLink,setTgLink]=useState(""); const [tgLoading,setTgLoading]=useState(false); const [tgError,setTgError]=useState("");
   useEffect(()=>{ if(checking) return; apiGet("/users/me").then(setProfile); },[checking]);
+  useEffect(()=>{ if(checking) return; apiGet("/users/telegram/status").then(d=>{setTgLinked(d.linked);setTgUsername(d.telegram_username);}).catch(()=>{}); },[checking]);
+
+  async function generateTelegramLink() {
+    setTgError(""); setTgLoading(true);
+    try {
+      const d = await apiPost("/users/telegram/link-code");
+      setTgLink(d.link);
+    } catch (e:any) {
+      setTgError(e?.message || "Havola olishda xatolik");
+    } finally {
+      setTgLoading(false);
+    }
+  }
 
   if(checking||!profile) return <div style={{ display:"flex",height:"100vh",alignItems:"center",justifyContent:"center",background:"var(--bg-main)" }}><div style={{ width:"40px",height:"40px",borderRadius:"50%",border:"4px solid var(--border)",borderTopColor:"var(--accent)" }}/></div>;
 
@@ -85,6 +100,34 @@ export default function SettingsPage() {
                 </button>
               </div>
             ))}
+          </div>
+
+          {/* TELEGRAM */}
+          <div style={C}>
+            <div style={{ display:"flex",alignItems:"center",gap:"8px",marginBottom:"16px" }}><Send size={18} color="var(--accent)"/><span style={{ fontSize:"16px",fontWeight:"700",color:"var(--text-1)" }}>Telegram</span></div>
+            {tgLinked ? (
+              <p style={{ fontSize:"14px",color:"var(--text-2)" }}>
+                ✅ Bog'langan{tgUsername?` — @${tgUsername}`:""}. Endi botdan <code>/today</code>, <code>/streak</code>, <code>/progress</code> kabi buyruqlarni ishlatishingiz mumkin.
+              </p>
+            ) : (
+              <>
+                <p style={{ fontSize:"14px",color:"var(--text-2)",marginBottom:"12px" }}>
+                  Telegram orqali kunlik eslatma va streak ogohlantirishlarini olish uchun akkauntingizni bog'lang.
+                </p>
+                {tgLink ? (
+                  <a href={tgLink} target="_blank" rel="noopener noreferrer"
+                    style={{ display:"inline-block",padding:"10px 20px",background:"#229ED9",color:"#fff",borderRadius:"10px",fontSize:"14px",fontWeight:"600",textDecoration:"none" }}>
+                    Telegram'da ochish va bog'lash →
+                  </a>
+                ) : (
+                  <button onClick={generateTelegramLink} disabled={tgLoading}
+                    style={{ padding:"10px 20px",background:"#229ED9",color:"#fff",border:"none",borderRadius:"10px",fontSize:"14px",fontWeight:"600",cursor:"pointer" }}>
+                    {tgLoading?"Yuklanmoqda...":"Telegram bog'lash"}
+                  </button>
+                )}
+                {tgError && <p style={{ color:"#DC2626",fontSize:"13px",marginTop:"10px" }}>{tgError}</p>}
+              </>
+            )}
           </div>
 
           {/* REJA */}

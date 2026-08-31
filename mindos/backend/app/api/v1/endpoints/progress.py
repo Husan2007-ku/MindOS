@@ -53,6 +53,7 @@ async def get_streak(current_user: User = Depends(get_current_user)):
         "current_streak": current_user.streak,
         "max_streak": current_user.max_streak,
         "last_active": current_user.last_active,
+        "streak_freezes": current_user.streak_freezes,
         "streak_status": (
             "🔥 Zo'r streak!" if current_user.streak >= 30
             else "👍 Yaxshi ketayapti!" if current_user.streak >= 7

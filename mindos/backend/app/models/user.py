@@ -98,6 +98,24 @@ class User(Base):
     tts_daily_count = Column(Integer, default=0, nullable=False)
     tts_count_date = Column(String(10), nullable=True)  # "YYYY-MM-DD"
 
+    # Streak-freeze (Duolingo uslubida) — har hafta 1 ta bepul "muzlatish"
+    # avtomatik tiklanadi (barcha tariflar uchun bir xil). Bitta kun
+    # o'tkazib yuborilsa, streak nolga tushmasdan shu freeze sarflanadi
+    # (app/agents/mentor_agent.py _update_streak()).
+    streak_freezes = Column(Integer, default=1, nullable=False)
+    last_freeze_refill_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Referral (do'stni taklif qilish bonusi) — har bir foydalanuvchida
+    # o'ziga xos referral_code bo'ladi (ro'yxatdan o'tishda generatsiya
+    # qilinadi). Kimdir shu kod bilan ro'yxatdan o'tsa, referred_by_id
+    # o'sha kodni bergan foydalanuvchiga ishora qiladi. Bonus (XP) faqat
+    # taklif qilingan odam ONBOARDING'ni tugatgach beriladi (bo'sh/soxta
+    # akkauntlar orqali suiiste'mol qilishning oldini olish uchun) —
+    # referral_rewarded shu bonus allaqachon berilganini belgilaydi.
+    referral_code = Column(String(12), unique=True, nullable=True, index=True)
+    referred_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    referral_rewarded = Column(Boolean, default=False, nullable=False)
+
     # Relationships
     curricula = relationship("Curriculum", back_populates="user", cascade="all, delete-orphan")
     messages = relationship("Message", back_populates="user", cascade="all, delete-orphan")

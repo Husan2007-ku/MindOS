@@ -9,6 +9,7 @@ function RegisterForm() {
   const searchParams = useSearchParams();
   const tgId = searchParams.get("tg_id");
   const tgUsername = searchParams.get("tg_username");
+  const refCode = searchParams.get("ref");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,7 +22,7 @@ function RegisterForm() {
       const res = await fetch(`${API_BASE}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, full_name: fullName, lang: "uz", tg_id: tgId, tg_username: tgUsername }),
+        body: JSON.stringify({ email, password, full_name: fullName, lang: "uz", tg_id: tgId, tg_username: tgUsername, ref: refCode }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.detail || "Xatolik yuz berdi"); return; }
@@ -37,6 +38,11 @@ function RegisterForm() {
         <Link href="/" style={{ fontSize:"24px", fontWeight:"700", color:"var(--accent)", textDecoration:"none", display:"block", marginBottom:"8px" }}>MindOS</Link>
         <h1 style={{ fontSize:"22px", fontWeight:"700", color:"var(--text-1)", marginBottom:"6px" }}>Hisob yaratish</h1>
         <p style={{ fontSize:"14px", color:"var(--text-2)", marginBottom:"28px" }}>Shaxsiy mentoringiz sizni kutmoqda</p>
+        {refCode && (
+          <div style={{ background:"var(--amber-light,#FEF3C7)", border:"1px solid #FCD34D", borderRadius:"10px", padding:"10px 14px", marginBottom:"20px", fontSize:"13px", color:"#92400E" }}>
+            🎉 Do'stingiz sizni taklif qildi! Ro'yxatdan o'tib, birinchi rejangizni tuzganingizda ikkalangiz ham bonus olasiz.
+          </div>
+        )}
         <div style={{ marginBottom:"16px" }}>
           <label style={{ display:"block", fontSize:"13px", fontWeight:"600", color:"var(--text-2)", marginBottom:"6px" }}>Ismingiz</label>
           <input value={fullName} onChange={e=>setFullName(e.target.value)} placeholder="Ism Familiya"

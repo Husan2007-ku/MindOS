@@ -6,7 +6,7 @@ import { apiGet, apiPost, apiPut, apiDelete, clearTokens } from "@/lib/api";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 import { useTheme } from "@/lib/useTheme";
 import { useRouter } from "next/navigation";
-import { Sun, Moon, CreditCard, Bell, BellRing, User, Shield, Send } from "lucide-react";
+import { Sun, Moon, CreditCard, Bell, BellRing, User, Shield, Send, Users, Copy, Check } from "lucide-react";
 
 const LANGS=[{value:"uz",label:"O'zbek"},{value:"ru",label:"Rus"},{value:"en",label:"Ingliz"}];
 interface Profile { full_name:string|null; lang:string; plan:string; notify_daily:boolean; notify_time:string; notify_streak:boolean; notify_sr:boolean; }
@@ -20,8 +20,17 @@ export default function SettingsPage() {
   const [tgLink,setTgLink]=useState(""); const [tgLoading,setTgLoading]=useState(false); const [tgError,setTgError]=useState("");
   const [pushSupported,setPushSupported]=useState(true); const [pushEnabled,setPushEnabled]=useState(false);
   const [pushLoading,setPushLoading]=useState(false); const [pushError,setPushError]=useState("");
+  const [referralCode,setReferralCode]=useState(""); const [referralsCount,setReferralsCount]=useState(0);
+  const [refCopied,setRefCopied]=useState(false);
   useEffect(()=>{ if(checking) return; apiGet("/users/me").then(setProfile); },[checking]);
   useEffect(()=>{ if(checking) return; apiGet("/users/telegram/status").then(d=>{setTgLinked(d.linked);setTgUsername(d.telegram_username);}).catch(()=>{}); },[checking]);
+  useEffect(()=>{ if(checking) return; apiGet("/users/referral").then(d=>{setReferralCode(d.referral_code||"");setReferralsCount(d.referrals_count||0);}).catch(()=>{}); },[checking]);
+
+  function copyReferralLink() {
+    if (typeof window === "undefined" || !referralCode) return;
+    const link = `${window.location.origin}/register?ref=${referralCode}`;
+    navigator.clipboard.writeText(link).then(()=>{ setRefCopied(true); setTimeout(()=>setRefCopied(false),2000); });
+  }
   useEffect(()=>{
     if(checking) return;
     if(!("serviceWorker" in navigator)||!("PushManager" in window)){ setPushSupported(false); return; }
@@ -184,6 +193,25 @@ export default function SettingsPage() {
                 {pushLoading?"...":pushEnabled?"Bildirishnomani o'chirish":"Bildirishnomani yoqish"}
               </button>
               {pushError && <p style={{ color:"#DC2626",fontSize:"13px",marginTop:"10px" }}>{pushError}</p>}
+            </div>
+          )}
+
+          {/* REFERRAL */}
+          {referralCode && (
+            <div style={C}>
+              <div style={{ display:"flex",alignItems:"center",gap:"8px",marginBottom:"16px" }}><Users size={18} color="var(--accent)"/><span style={{ fontSize:"16px",fontWeight:"700",color:"var(--text-1)" }}>Do'stlaringizni taklif qiling</span></div>
+              <p style={{ fontSize:"14px",color:"var(--text-2)",marginBottom:"12px" }}>
+                Havolangiz orqali do'stingiz ro'yxatdan o'tib, o'z rejasini tuzsa — ikkalangiz ham bonus XP olasiz.
+              </p>
+              <div style={{ display:"flex",alignItems:"center",gap:"8px",marginBottom:"12px" }}>
+                <code style={{ flex:1,padding:"10px 14px",background:"var(--bg-hover)",border:"1px solid var(--border)",borderRadius:"10px",fontSize:"13px",color:"var(--text-1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>
+                  {typeof window!=="undefined"?`${window.location.origin}/register?ref=${referralCode}`:referralCode}
+                </code>
+                <button onClick={copyReferralLink} style={{ padding:"10px 14px",background:"var(--accent)",color:"#fff",border:"none",borderRadius:"10px",cursor:"pointer",display:"flex",alignItems:"center",gap:"6px",fontSize:"13px",fontWeight:"600" }}>
+                  {refCopied?<Check size={14}/>:<Copy size={14}/>}{refCopied?"Nusxalandi":"Nusxalash"}
+                </button>
+              </div>
+              <p style={{ fontSize:"13px",color:"var(--text-2)" }}>Hozirgacha <b style={{color:"var(--text-1)"}}>{referralsCount}</b> ta do'stingiz qo'shilgan</p>
             </div>
           )}
 

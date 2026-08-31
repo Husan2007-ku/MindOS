@@ -105,6 +105,21 @@ async def start_onboarding(
         "topic": data.topic.strip(), "level": data.level.value, "daily_minutes": data.daily_minutes,
     })
 
+    # Referral bonusi: agar bu foydalanuvchi kimningdir taklifi bilan kelgan bo'lsa
+    # va bonus hali berilmagan bo'lsa — ENDI (onboarding tugagach) ikkala tomonga
+    # ham XP beriladi. Bo'sh/faollashmagan akkauntlar orqali suiiste'mol qilishning
+    # oldini olish uchun ataylab ro'yxatdan o'tishdagi emas, shu yerda beriladi.
+    if current_user.referred_by_id and not current_user.referral_rewarded:
+        from app.services.gamification_service import add_xp, check_and_award_badges, XP_REFERRAL_BONUS
+        referrer_result = await db.execute(select(User).where(User.id == current_user.referred_by_id))
+        referrer = referrer_result.scalar_one_or_none()
+        if referrer:
+            await add_xp(db, current_user, XP_REFERRAL_BONUS)
+            await add_xp(db, referrer, XP_REFERRAL_BONUS)
+            await check_and_award_badges(db, referrer)
+            current_user.referral_rewarded = True
+            await db.flush()
+
     # Background da Curriculum Agent ishga tushirish
     background_tasks.add_task(
         run_curriculum_agent,

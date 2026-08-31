@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
@@ -285,13 +285,27 @@ class MentorAgent:
         user_tz = pytz.timezone(user.timezone or "Asia/Tashkent")
         now = datetime.now(user_tz)
         today = now.date()
+        now_utc = datetime.now(timezone.utc)
+
+        # Streak-freeze: har hafta 1 ta bepul "muzlatish" avtomatik tiklanadi
+        # (barcha tariflar uchun bir xil — Duolingo uslubidagi engil versiya).
+        if not user.last_freeze_refill_at or (now_utc - user.last_freeze_refill_at) >= timedelta(days=7):
+            user.streak_freezes = 1
+            user.last_freeze_refill_at = now_utc
 
         is_new_day = True
         if user.last_active:
             last_day = user.last_active.astimezone(user_tz).date()
-            if last_day == today:
+            gap_days = (today - last_day).days
+            if gap_days == 0:
                 is_new_day = False  # Bugun allaqachon faol — streak o'zgarmaydi
-            elif (today - last_day).days == 1:
+            elif gap_days == 1:
+                user.streak += 1
+                if user.streak > user.max_streak:
+                    user.max_streak = user.streak
+            elif gap_days == 2 and user.streak_freezes > 0:
+                # Bitta kun o'tkazib yuborilgan, lekin freeze bor — streak saqlanadi
+                user.streak_freezes -= 1
                 user.streak += 1
                 if user.streak > user.max_streak:
                     user.max_streak = user.streak
@@ -300,7 +314,7 @@ class MentorAgent:
         else:
             user.streak = 1
 
-        user.last_active = datetime.now(timezone.utc)
+        user.last_active = now_utc
 
         # Gamifikatsiya: kunlik faollik uchun XP + streak-asosli yutuqlarni tekshirish
         if is_new_day:

@@ -20,7 +20,7 @@ export default function ProgressPage() {
   const { checking } = useRequireAuth();
   const [weekly, setWeekly] = useState({ lessons_completed:0, messages_sent:0 });
   const [monthly, setMonthly] = useState({ lessons_completed:0 });
-  const [streak, setStreak] = useState({ current_streak:0, max_streak:0, streak_status:"" });
+  const [streak, setStreak] = useState({ current_streak:0, max_streak:0, streak_status:"", streak_freezes:0 });
   const [sr, setSr] = useState({ total_cards:0, retention_rate:0 });
   const [daily, setDaily] = useState<DayActivity[]>([]);
   const [mastery, setMastery] = useState<MasteryItem[]>([]);
@@ -77,6 +77,11 @@ export default function ProgressPage() {
               <div className="font-mono text-5xl font-bold text-amber-400">{streak.current_streak}</div>
               <div className="text-deep-200">kunlik streak</div>
               <div className="mt-1 text-sm text-deep-300">{streak.streak_status}</div>
+              {streak.streak_freezes > 0 && (
+                <div className="mt-2 inline-flex items-center gap-1 rounded-full bg-deep-800 px-3 py-1 text-xs font-semibold text-blue-200">
+                  🧊 {streak.streak_freezes} ta streak-freeze mavjud
+                </div>
+              )}
             </div>
             <div className="ml-auto text-right">
               <div className="text-sm text-deep-300">Rekord</div>

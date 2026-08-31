@@ -14,6 +14,18 @@ from app.models.user import User
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
+async def _generate_unique_referral_code(db: AsyncSession) -> str:
+    """Har bir foydalanuvchi uchun 8 belgili, taxmin qilib bo'lmaydigan, o'ziga xos kod."""
+    import secrets
+    for _ in range(5):
+        code = secrets.token_urlsafe(6)[:8].upper().replace("_", "A").replace("-", "B")
+        existing = await db.execute(select(User).where(User.referral_code == code))
+        if not existing.scalar_one_or_none():
+            return code
+    # Nihoyatda ehtimoldan yiroq kollizyon holati — vaqt tamg'asi bilan kafolatlangan noyoblik
+    return secrets.token_urlsafe(8).upper().replace("_", "A").replace("-", "B")[:10]
+
+
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
@@ -21,6 +33,7 @@ class RegisterRequest(BaseModel):
     lang: str = "uz"
     tg_id: str | None = None
     tg_username: str | None = None
+    ref: str | None = None  # referral_code — do'sti tomonidan taklif qilingan bo'lsa
 
 
 class LoginRequest(BaseModel):
@@ -62,6 +75,7 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
         hashed_password=hash_password(data.password),
         full_name=data.full_name,
         lang=data.lang,
+        referral_code=await _generate_unique_referral_code(db),
     )
 
     # Agar foydalanuvchi Telegram bot orqali kelgan bo'lsa (bot.py /start'dagi
@@ -72,6 +86,16 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
         if not existing_tg.scalar_one_or_none():
             user.telegram_id = data.tg_id
             user.telegram_username = data.tg_username
+
+    # Referral: kod bilan kelgan bo'lsa — bog'lab qo'yamiz. XP bonusi hozir
+    # EMAS, faqat bu foydalanuvchi onboarding'ni tugatgach beriladi
+    # (app/api/v1/endpoints/onboarding.py) — bo'sh akkauntlar orqali
+    # suiiste'mol qilishning oldini olish uchun.
+    if data.ref:
+        referrer_result = await db.execute(select(User).where(User.referral_code == data.ref))
+        referrer = referrer_result.scalar_one_or_none()
+        if referrer and referrer.email != data.email:
+            user.referred_by_id = referrer.id
 
     db.add(user)
     await db.flush()

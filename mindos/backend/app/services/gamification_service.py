@@ -22,6 +22,7 @@ XP_DAILY_ACTIVITY = 5
 XP_HOMEWORK_EXCELLENT = 20   # ball >= 80
 XP_HOMEWORK_OK = 10          # ball >= 50
 XP_HOMEWORK_PARTICIPATION = 5
+XP_REFERRAL_BONUS = 30  # ikkala tomonga ham (taklif qilgan va qo'shilgan) beriladi
 
 
 BADGE_CATALOG = [
@@ -81,6 +82,13 @@ BADGE_CATALOG = [
         "icon": "💬",
         "check": lambda s: s["messages_sent"] >= 50,
     },
+    {
+        "key": "referral_1",
+        "title": "Jamoa quruvchi",
+        "description": "Birinchi do'stingizni MindOS'ga taklif qildingiz",
+        "icon": "🤝",
+        "check": lambda s: s["referrals_count"] >= 1,
+    },
 ]
 
 BADGE_BY_KEY = {b["key"]: b for b in BADGE_CATALOG}
@@ -116,6 +124,9 @@ async def compute_stats(db: AsyncSession, user: User) -> dict:
     messages_result = await db.execute(
         select(func.count(Message.id)).where(Message.user_id == user.id, Message.role == "user")
     )
+    referrals_result = await db.execute(
+        select(func.count(User.id)).where(User.referred_by_id == user.id)
+    )
 
     return {
         "streak": user.streak or 0,
@@ -124,6 +135,7 @@ async def compute_stats(db: AsyncSession, user: User) -> dict:
         "best_homework_score": best_score_result.scalar() or 0,
         "sources_count": sources_result.scalar() or 0,
         "messages_sent": messages_result.scalar() or 0,
+        "referrals_count": referrals_result.scalar() or 0,
     }
 
 

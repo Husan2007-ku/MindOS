@@ -55,6 +55,7 @@ async def get_profile(current_user: User = Depends(get_current_user)):
         "created_at": current_user.created_at,
         "tts_remaining_today": tts_remaining_today,
         "is_admin": current_user.is_admin,
+        "streak_freezes": current_user.streak_freezes,
     }
 
 
@@ -246,3 +247,23 @@ async def unsubscribe_push(
     )
     await db.commit()
     return {"ok": True}
+
+
+@router.get("/referral")
+async def get_referral_info(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Do'stni taklif qilish kodi/havolasi va hozirgacha nechta odam taklif
+    qilib bo'lganini qaytaradi. Bonus (XP) taklif qilingan odam onboarding'ni
+    tugatgach beriladi (app/api/v1/endpoints/onboarding.py).
+    """
+    from sqlalchemy import func
+    referrals_result = await db.execute(
+        select(func.count(User.id)).where(User.referred_by_id == current_user.id)
+    )
+    return {
+        "referral_code": current_user.referral_code,
+        "referrals_count": referrals_result.scalar() or 0,
+    }

@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { LayoutDashboard,MessageCircle,BookOpen,ClipboardCheck,Repeat2,TrendingUp,Settings,LogOut,Flame,Sun,Moon,Library,HelpCircle } from "lucide-react";
+import { LayoutDashboard,MessageCircle,BookOpen,ClipboardCheck,Repeat2,TrendingUp,Settings,LogOut,Flame,Sun,Moon,Library,HelpCircle,ShieldCheck } from "lucide-react";
 import { apiGet, clearTokens } from "@/lib/api";
 import { useTheme } from "@/lib/useTheme";
 
@@ -25,7 +25,8 @@ export default function Sidebar() {
   const [name,setName]=useState("");
   const [xp,setXp]=useState<number|null>(null);
   const [level,setLevel]=useState<number|null>(null);
-  useEffect(()=>{ apiGet("/users/me").then(d=>{setStreak(d.streak);setName(d.full_name?.split(" ")[0]||"");}).catch(()=>{}); },[]);
+  const [isAdmin,setIsAdmin]=useState(false);
+  useEffect(()=>{ apiGet("/users/me").then(d=>{setStreak(d.streak);setName(d.full_name?.split(" ")[0]||"");setIsAdmin(!!d.is_admin);}).catch(()=>{}); },[]);
   useEffect(()=>{ apiGet("/gamification/me").then(d=>{setXp(d.xp);setLevel(d.level);}).catch(()=>{}); },[]);
   function logout(){ clearTokens(); router.push("/"); }
   return (
@@ -54,6 +55,11 @@ export default function Sidebar() {
             </Link>
           );
         })}
+        {isAdmin && (
+          <Link href="/admin" style={{ display:"flex",alignItems:"center",gap:"12px",padding:"10px 12px",borderRadius:"12px",textDecoration:"none",fontSize:"14px",fontWeight:"500",transition:"all 0.15s",background:pathname==="/admin"?"var(--accent)":"transparent",color:pathname==="/admin"?"#fff":"var(--text-2)" }}>
+            <ShieldCheck size={18}/>Admin
+          </Link>
+        )}
       </nav>
       <button onClick={toggle} style={{ display:"flex",alignItems:"center",gap:"12px",padding:"10px 12px",borderRadius:"12px",border:"none",background:"transparent",cursor:"pointer",fontSize:"14px",fontWeight:"500",color:"var(--text-2)",width:"100%",marginBottom:"4px" }}>
         {theme==="dark"?<Sun size={18}/>:<Moon size={18}/>}

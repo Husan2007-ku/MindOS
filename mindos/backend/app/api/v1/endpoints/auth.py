@@ -4,6 +4,7 @@ from sqlalchemy import select
 from pydantic import BaseModel, EmailStr
 
 from app.core.database import get_db
+from app.core.config import settings
 from app.core.security import (
     hash_password, verify_password,
     create_access_token, create_refresh_token, get_current_user
@@ -103,6 +104,12 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
 
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Akkaunt bloklangan")
+
+    # ADMIN_EMAILS ro'yxatidagi email har safar login qilganda avtomatik
+    # is_admin=True bo'lib qoladi — qo'lda SQL yozish shart emas.
+    if user.email in settings.ADMIN_EMAILS and not user.is_admin:
+        user.is_admin = True
+        await db.commit()
 
     return TokenResponse(
         access_token=create_access_token(user.id),

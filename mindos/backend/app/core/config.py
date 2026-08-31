@@ -62,6 +62,11 @@ class Settings(BaseSettings):
     # CORS
     ALLOWED_ORIGINS: List[str] = ["http://localhost:3000"]
 
+    # Admin — shu ro'yxatdagi email bilan LOGIN QILGANDA avtomatik is_admin=True
+    # bo'lib qoladi (login() ichida tekshiriladi). Qo'lda SQL yozish yoki alohida
+    # "birinchi adminni ro'yxatdan o'tkazish" endpointi kerak emas.
+    ADMIN_EMAILS: List[str] = []
+
     class Config:
         env_file = ".env"
         case_sensitive = True

@@ -53,6 +53,7 @@ async def get_profile(current_user: User = Depends(get_current_user)):
         "notify_sr": current_user.notify_sr,
         "created_at": current_user.created_at,
         "tts_remaining_today": tts_remaining_today,
+        "is_admin": current_user.is_admin,
     }
 
 

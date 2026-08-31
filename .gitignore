@@ -3,3 +3,5 @@ mindos/backend/__pycache__/
 mindos/backend/.env
 mindos/frontend/node_modules/
 mindos/frontend/.next/
+.idea/
+mindos/frontend/tsconfig.tsbuildinfo

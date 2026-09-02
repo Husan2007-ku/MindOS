@@ -667,9 +667,9 @@ function ChatPageInner() {
       )}
 
       <main className="flex flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-deep-100 bg-white pl-16 pr-8 py-4 md:pl-8">
+        <header className="flex flex-col gap-2 border-b border-deep-100 bg-white pl-16 pr-4 py-3 md:flex-row md:items-center md:justify-between md:pl-8 md:pr-8 md:py-4">
           <h1 className="font-display text-xl font-bold text-deep-950">Mentor</h1>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button onClick={openVoiceChat}
               className="flex items-center gap-1.5 rounded-lg border border-deep-100 px-3 py-1.5 text-sm font-medium text-ink-500 hover:bg-deep-50 transition-colors">
               <AudioLines size={15}/> Ovozli suhbat
@@ -690,9 +690,9 @@ function ChatPageInner() {
           </div>
         </header>
         {lessonInfo && (
-          <div className="flex items-center justify-between border-b border-amber-100 bg-amber-50 px-8 py-2.5 text-sm text-amber-800">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-100 bg-amber-50 px-4 md:px-8 py-2.5 text-sm text-amber-800">
             <span className="flex items-center gap-2"><BookOpen size={15}/> Bugungi dars: <strong>{lessonInfo.title}</strong></span>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {lessonInfo.status === "completed" ? (
                 <span className="flex items-center gap-1 rounded-lg bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700">
                   <CheckCircle2 size={13}/> Tugallangan
@@ -709,23 +709,23 @@ function ChatPageInner() {
           </div>
         )}
         {practiceMode==="speaking_practice" && (
-          <div className="flex items-center gap-2 border-b border-deep-100 bg-deep-950 px-8 py-2 text-sm text-white">
+          <div className="flex items-center gap-2 border-b border-deep-100 bg-deep-950 px-4 md:px-8 py-2 text-sm text-white">
             <Languages size={15}/> IELTS Speaking rejimi yoqiq — javoblaringizni ingliz tilida yozing yoki mikrofondan gapiring
           </div>
         )}
         {plan==="free" && ttsRemaining !== null && (
-          <div className="flex items-center gap-2 border-b border-deep-100 bg-amber-50 px-8 py-1.5 text-xs text-amber-700">
+          <div className="flex items-center gap-2 border-b border-deep-100 bg-amber-50 px-4 md:px-8 py-1.5 text-xs text-amber-700">
             <Volume2 size={13}/> Bugun ovozli javobdan {ttsRemaining} marta bepul foydalanishingiz mumkin (Pro rejada cheklovsiz)
           </div>
         )}
         {ttsError && (
-          <div className="flex items-center justify-between gap-2 border-b border-deep-100 bg-red-50 px-8 py-1.5 text-xs text-red-700">
+          <div className="flex items-center justify-between gap-2 border-b border-deep-100 bg-red-50 px-4 md:px-8 py-1.5 text-xs text-red-700">
             <span>{ttsError}</span>
             <button onClick={()=>setTtsError(null)} className="rounded-full p-0.5 hover:bg-red-100"><X size={12}/></button>
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto px-8 py-6">
+        <div className="flex-1 overflow-y-auto px-4 md:px-8 py-6">
           {loading ? (
             <p className="text-center text-ink-400">Yuklanmoqda...</p>
           ) : messages.length === 0 ? (
@@ -775,7 +775,7 @@ function ChatPageInner() {
           )}
         </div>
 
-        <div className="border-t border-deep-100 bg-white px-8 py-4">
+        <div className="border-t border-deep-100 bg-white px-4 md:px-8 py-4">
           <div className="mx-auto max-w-2xl">
             {mode==="code"&&(
               <textarea value={codeInput} onChange={e=>setCodeInput(e.target.value)} placeholder="Kod parchasi (ixtiyoriy)..." rows={3}

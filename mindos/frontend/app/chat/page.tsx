@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
+import MessageBubble from "@/components/MessageBubble";
 import { apiGet, getAccessToken, API_ROOT } from "@/lib/api";
 import { useRequireAuth } from "@/lib/useRequireAuth";
 import { Send, Mic, Square, Code2, MessageSquare, Lightbulb, BookOpen, Languages, X, Volume2, Loader2 } from "lucide-react";
@@ -281,9 +282,16 @@ function ChatPageInner() {
             <div className="mx-auto flex max-w-2xl flex-col gap-4">
               {messages.map(m=>(
                 <div key={m.id} className={`flex flex-col ${m.role==="user"?"items-end":"items-start"}`}>
-                  <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${m.role==="user"?"bg-deep-900 text-white":"bg-white border border-deep-100 text-ink-900"}`}>
-                    {m.content || (streaming ? <span className="animate-pulse">▋</span> : "")}
-                  </div>
+                  {m.content ? (
+                    // MessageBubble: markdown (qalin, ro'yxat, kod bloklari) va Mermaid
+                    // diagrammalarni haqiqiy vizual ko'rinishda render qiladi — ilgari
+                    // bu yerda AI javobi xom matn (``` va #### belgilari bilan) ko'rsatilardi.
+                    <MessageBubble role={m.role} content={m.content} />
+                  ) : (
+                    <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${m.role==="user"?"bg-deep-900 text-white":"bg-white border border-deep-100 text-ink-900"}`}>
+                      {streaming ? <span className="animate-pulse">▋</span> : ""}
+                    </div>
+                  )}
                   {m.role==="assistant" && m.content && !streaming && (
                     <button onClick={()=>playTTS(m.content, m.id)} disabled={playingId===m.id}
                       title="Ovozda tinglash"

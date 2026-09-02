@@ -23,3 +23,36 @@ body { background-color:var(--bg-main); color:var(--text-1); transition:backgrou
 [data-theme="dark"] input,[data-theme="dark"] textarea { background-color:var(--bg-hover)!important; color:var(--text-1)!important; border-color:var(--border)!important; }
 ::-webkit-scrollbar { width:5px; }
 ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+/* Mentor chat javoblarini formatlash (react-markdown + rehype-highlight) —
+   avval bu klass mavjud emas edi, shuning uchun AI javoblari xom matn kabi
+   ko'rinardi (### belgilari, ``` kod bloklari formatlanmagan holda). */
+.prose-mentor { font-size: 0.9rem; line-height: 1.6; color: var(--text-1); }
+.prose-mentor > * + * { margin-top: 0.75em; }
+.prose-mentor p { margin: 0; }
+.prose-mentor strong { font-weight: 700; color: var(--text-1); }
+.prose-mentor em { font-style: italic; }
+.prose-mentor ul, .prose-mentor ol { padding-left: 1.4em; }
+.prose-mentor ul { list-style: disc; }
+.prose-mentor ol { list-style: decimal; }
+.prose-mentor li + li { margin-top: 0.3em; }
+.prose-mentor h1, .prose-mentor h2, .prose-mentor h3 { font-weight: 700; color: var(--text-1); margin-top: 0.9em; }
+.prose-mentor a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+.prose-mentor blockquote { border-left: 3px solid var(--border); padding-left: 0.9em; color: var(--text-2); font-style: italic; }
+.prose-mentor code:not(pre code) {
+  background: var(--bg-hover); color: var(--accent); border-radius: 5px;
+  padding: 0.15em 0.4em; font-size: 0.85em; font-family: var(--font-mono, monospace);
+}
+.prose-mentor pre {
+  background: #0F2942; color: #EAF1F5; border-radius: 10px; padding: 0.9em 1em;
+  overflow-x: auto; font-size: 0.82em; line-height: 1.5;
+}
+[data-theme="dark"] .prose-mentor pre { background: #141414; }
+.prose-mentor pre code { background: transparent; padding: 0; color: inherit; font-family: var(--font-mono, monospace); }
+/* rehype-highlight token ranglari — loyihaning deep/amber palitrasiga moslashtirilgan */
+.prose-mentor .hljs-comment, .prose-mentor .hljs-quote { color: #7C93A8; font-style: italic; }
+.prose-mentor .hljs-keyword, .prose-mentor .hljs-selector-tag, .prose-mentor .hljs-literal { color: #E8C168; }
+.prose-mentor .hljs-string, .prose-mentor .hljs-attr { color: #97C9B8; }
+.prose-mentor .hljs-number, .prose-mentor .hljs-built_in { color: #C7DBE5; }
+.prose-mentor .hljs-title, .prose-mentor .hljs-function_ { color: #F6E8C8; font-weight: 600; }
+.prose-mentor .hljs-variable, .prose-mentor .hljs-params { color: #EAF1F5; }

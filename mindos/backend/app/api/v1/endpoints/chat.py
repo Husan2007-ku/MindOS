@@ -211,16 +211,32 @@ async def text_to_speech(
     client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 
     try:
+        # gpt-4o-mini-tts — eski tts-1/"alloy"ga qaraganda ancha tabiiy va iliqroq ovoz beradi,
+        # va instructions orqali ohangni ham boshqarish mumkin (mentor uchun iliq, sabrli ohang).
         response = await client.audio.speech.create(
-            model="tts-1",
-            voice="alloy",
+            model="gpt-4o-mini-tts",
+            voice="shimmer",
             input=text,
+            instructions=(
+                "Speak like a warm, patient, encouraging personal mentor talking one-on-one "
+                "with a student. Natural pacing, friendly and calm, not robotic or flat."
+            ),
             response_format="mp3",
         )
         audio_bytes = response.content
     except Exception as e:
-        logger.error(f"TTS xatosi: {e}")
-        raise HTTPException(status_code=502, detail="Ovozli javob generatsiya qilinmadi")
+        logger.warning(f"gpt-4o-mini-tts muvaffaqiyatsiz, tts-1 ga qaytilmoqda: {e}")
+        try:
+            response = await client.audio.speech.create(
+                model="tts-1-hd",
+                voice="shimmer",
+                input=text,
+                response_format="mp3",
+            )
+            audio_bytes = response.content
+        except Exception as e2:
+            logger.error(f"TTS xatosi: {e2}")
+            raise HTTPException(status_code=502, detail="Ovozli javob generatsiya qilinmadi")
 
     import io
     return StreamingResponse(io.BytesIO(audio_bytes), media_type="audio/mpeg")

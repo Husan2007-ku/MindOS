@@ -57,7 +57,7 @@ class EmailService:
         body = f"""
           <h2 style="color: #0F2942; margin-top: 0;">Salom, {full_name or _FALLBACK_NAME}! 📊</h2>
           <p style="color: #3D3A33; line-height: 1.6;">{report_text}</p>
-          <a href="https://mindos.uz/progress" style="display: inline-block; margin-top: 16px; background: #0F2942; color: white; padding: 10px 20px; border-radius: 10px; text-decoration: none;">
+          <a href="{settings.FRONTEND_URL}/progress" style="display: inline-block; margin-top: 16px; background: #0F2942; color: white; padding: 10px 20px; border-radius: 10px; text-decoration: none;">
             Progressni ko'rish
           </a>
         """
@@ -88,7 +88,7 @@ class EmailService:
             <strong>{plan.upper()}</strong> rejasiga ${amount}/oy narxida obuna bo'ldingiz.
             Endi barcha imkoniyatlardan to'liq foydalanishingiz mumkin.
           </p>
-          <a href="https://mindos.uz/dashboard" style="display: inline-block; margin-top: 16px; background: #D4A024; color: #0F2942; padding: 10px 20px; border-radius: 10px; text-decoration: none; font-weight: 600;">
+          <a href="{settings.FRONTEND_URL}/dashboard" style="display: inline-block; margin-top: 16px; background: #D4A024; color: #0F2942; padding: 10px 20px; border-radius: 10px; text-decoration: none; font-weight: 600;">
             Boshlash
           </a>
         """
@@ -103,7 +103,7 @@ class EmailService:
             MindOS — sizning shaxsiy AI mentoringiz. Onboarding orqali shaxsiy o'quv reja tuzib,
             bugundan o'rganishni boshlang.
           </p>
-          <a href="https://mindos.uz/onboarding" style="display: inline-block; margin-top: 16px; background: #0F2942; color: white; padding: 10px 20px; border-radius: 10px; text-decoration: none;">
+          <a href="{settings.FRONTEND_URL}/onboarding" style="display: inline-block; margin-top: 16px; background: #0F2942; color: white; padding: 10px 20px; border-radius: 10px; text-decoration: none;">
             Boshlash
           </a>
         """

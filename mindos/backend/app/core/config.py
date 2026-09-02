@@ -54,7 +54,10 @@ class Settings(BaseSettings):
 
     # Email
     RESEND_API_KEY: str = ""
-    FROM_EMAIL: str = "noreply@mindos.uz"
+    FROM_EMAIL: str = "onboarding@resend.dev"  # Resend hisobida domen tasdiqlangach o'z domeningizga almashtiring
+    # Emaillardagi havolalar shu manzilga ishora qiladi (avval "mindos.uz" deb
+    # hardcode qilingan edi — bunday domen mavjud emas, havolalar ishlamas edi).
+    FRONTEND_URL: str = "http://localhost:3000"
 
     # Sentry
     SENTRY_DSN: str = ""

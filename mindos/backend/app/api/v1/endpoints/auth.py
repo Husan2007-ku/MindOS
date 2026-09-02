@@ -196,7 +196,7 @@ async def forgot_password(data: ForgotPasswordRequest, db: AsyncSession = Depend
         settings.SECRET_KEY,
         algorithm=settings.ALGORITHM,
     )
-    reset_link = f"https://mindos.uz/reset-password?token={reset_token}"
+    reset_link = f"{settings.FRONTEND_URL}/reset-password?token={reset_token}"
     try:
         await EmailService.send_password_reset(user.email, reset_link)
     except Exception:

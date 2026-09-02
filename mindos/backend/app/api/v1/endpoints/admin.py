@@ -9,7 +9,7 @@ from app.core.database import get_db
 from app.core.security import get_admin_user
 from app.models.user import (
     User, Subscription, Lesson, LessonStatus, Curriculum,
-    Message, Notification, NotificationChannel, AnalyticsEvent,
+    Message, Notification, NotificationChannel, AnalyticsEvent, PlanEnum,
 )
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -22,6 +22,10 @@ class AnnouncementRequest(BaseModel):
     title: str
     message: str
     channel: str = "telegram"  # telegram | email | in_app
+
+
+class UpdatePlanRequest(BaseModel):
+    plan: str
 
 
 @router.get("/users")
@@ -68,6 +72,44 @@ async def list_users(
         "page_size": page_size,
         "total_pages": (total + page_size - 1) // page_size if total else 0,
     }
+
+
+@router.put("/users/{user_id}/plan")
+async def update_user_plan(
+    user_id: int,
+    data: UpdatePlanRequest,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(get_admin_user),
+):
+    """
+    Admin panelidan foydalanuvchi rejasini qo'lda o'zgartirish.
+
+    Foydalanish holatlari: sinov/QA uchun loyiha egasi o'z hisobini
+    Pro/Enterprise qilib ko'rish, mijozlar bilan kelishilgan maxsus
+    tariflar, yoki to'lov muammosi bo'lgan foydalanuvchiga vaqtincha
+    kirish berish. Stripe orqali haqiqiy obuna emas — faqat User.plan
+    ustunini o'zgartiradi, shuning uchun keyinchalik Stripe webhook
+    kelib qolsa uni qayta ustiga yozishi mumkin (bu normal holat).
+    """
+    valid_plans = {p.value for p in PlanEnum}
+    if data.plan not in valid_plans:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Noto'g'ri reja: {data.plan}. Mumkin bo'lganlar: {', '.join(sorted(valid_plans))}",
+        )
+
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi")
+
+    old_plan = user.plan.value if hasattr(user.plan, "value") else user.plan
+    user.plan = PlanEnum(data.plan)
+    await db.commit()
+    await db.refresh(user)
+    logger.info(f"Admin {_admin.email} reja o'zgartirdi: {user.email} — {old_plan} -> {data.plan}")
+
+    return {"id": user.id, "email": user.email, "plan": user.plan}
 
 
 @router.get("/analytics/overview")

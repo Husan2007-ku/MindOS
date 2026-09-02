@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import MessageBubble from "@/components/MessageBubble";
 import { apiGet, apiPut, getAccessToken, API_ROOT } from "@/lib/api";
@@ -19,7 +19,10 @@ const SUGGESTIONS = [
 function ChatPageInner() {
   const { checking } = useRequireAuth();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [lessonId, setLessonId] = useState<number|null>(null);
+  interface ConversationItem { lesson_id: number|null; title: string; last_message: string; last_role: string; last_at: string; }
+  const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [lessonInfo, setLessonInfo] = useState<{id:number; title:string; status?:string}|null>(null);
   const [completingLesson, setCompletingLesson] = useState(false);
   const [practiceMode, setPracticeMode] = useState<"normal"|"speaking_practice">("normal");
@@ -231,6 +234,7 @@ function ChatPageInner() {
           } catch {}
         }
       }
+      refreshConversations();
       return fullText;
     } catch {
       setMessages(prev => prev.map(m => m.id === aid ? { ...m, content: "⚠️ Server bilan aloqa yo'q" } : m));
@@ -352,6 +356,28 @@ function ChatPageInner() {
     }).finally(() => setLoading(false));
   }, [checking, lessonId]);
 
+  // Chap paneldagi "Suhbatlar" ro'yxati — Claude/ChatGPT'dagi kabi, har bir
+  // dars (yoki umumiy suhbat) alohida qator bo'lib, bosilsa o'sha suhbatga
+  // olib boradi. Sahifa ochilganda va har safar yangi xabar yuborilgach
+  // yangilanadi, shunda yangi boshlangan suhbat ham darrov ro'yxatda chiqadi.
+  async function refreshConversations() {
+    try {
+      const d = await apiGet("/chat/conversations");
+      setConversations(d.conversations || []);
+    } catch {}
+  }
+
+  useEffect(() => { if (!checking) refreshConversations(); }, [checking]);
+
+  function formatConvTime(iso: string) {
+    const d = new Date(iso);
+    const now = new Date();
+    if (d.toDateString() === now.toDateString()) {
+      return d.toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" });
+    }
+    return d.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit" });
+  }
+
   useEffect(() => {
     if (!lessonId) { setLessonInfo(null); return; }
     apiGet(`/lessons/${lessonId}`).then(d => setLessonInfo({ id: d.id, title: d.title, status: d.status })).catch(() => {});
@@ -447,7 +473,7 @@ function ChatPageInner() {
       }
       if (!code && practiceMode === "speaking_practice") playTTS(fullText, aid);
     } catch { addToken("\n\n⚠️ Server bilan aloqa yo'q", aid); }
-    finally { setStreaming(false); }
+    finally { setStreaming(false); refreshConversations(); }
   }
 
   async function startRec() {
@@ -495,7 +521,7 @@ function ChatPageInner() {
             }
           }
           if (practiceMode === "speaking_practice") playTTS(fullText, aid);
-        } finally { setStreaming(false); }
+        } finally { setStreaming(false); refreshConversations(); }
       };
       rec.start(); recorderRef.current = rec; setRecording(true);
     } catch { alert("Mikrofonga ruxsat berilmadi"); }
@@ -558,6 +584,36 @@ function ChatPageInner() {
         </div>
       )}
       <Sidebar />
+
+      {/* Suhbatlar paneli — Claude/ChatGPT'dagi chat ro'yxati kabi: har bir
+          dars (yoki umumiy suhbat) alohida qator, bosilganda o'sha suhbatga
+          o'tadi. Foydalanuvchi "chat tarixi qayerda ko'rinadi" deb so'ragan
+          edi — endi shu yerda, ko'rinib turibdi. */}
+      <aside className="hidden w-72 shrink-0 flex-col border-r border-deep-100 bg-white md:flex">
+        <div className="border-b border-deep-100 px-4 py-4">
+          <h2 className="font-display text-base font-bold text-deep-950">Suhbatlar</h2>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {conversations.length === 0 ? (
+            <p className="px-4 py-6 text-center text-xs text-ink-400">Hali suhbat yo'q</p>
+          ) : conversations.map(c => {
+            const active = c.lesson_id === lessonId;
+            return (
+              <button
+                key={c.lesson_id ?? "general"}
+                onClick={() => router.push(c.lesson_id ? `/chat?lesson=${c.lesson_id}` : "/chat")}
+                className={`flex w-full flex-col gap-0.5 border-b border-deep-50 px-4 py-3 text-left transition-colors ${active ? "bg-deep-50" : "hover:bg-deep-50/60"}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className={`truncate text-sm font-medium ${active ? "text-deep-950" : "text-ink-700"}`}>{c.title}</span>
+                  <span className="shrink-0 text-[10px] text-ink-400">{formatConvTime(c.last_at)}</span>
+                </div>
+                <span className="truncate text-xs text-ink-400">{c.last_message}</span>
+              </button>
+            );
+          })}
+        </div>
+      </aside>
+
       <main className="flex flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-deep-100 bg-white px-8 py-4">
           <h1 className="font-display text-xl font-bold text-deep-950">Mentor</h1>

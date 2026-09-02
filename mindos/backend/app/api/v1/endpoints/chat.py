@@ -9,7 +9,7 @@ import logging
 from app.core.database import get_db
 from app.core.security import get_current_user
 from app.core.config import settings
-from app.models.user import User, Message
+from app.models.user import User, Message, Lesson
 from app.agents.mentor_agent import MentorAgent
 from app.agents.code_mentor_agent import CodeMentorAgent
 
@@ -323,6 +323,59 @@ async def send_code_message(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@router.get("/conversations")
+async def list_conversations(
+    limit: int = 200,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Suhbatlar ro'yxati — Claude/ChatGPT uslubidagi chat panel uchun: har bir
+    dars (yoki darsga bog'liq bo'lmagan umumiy suhbat) BITTA qator sifatida,
+    so'nggi xabari va vaqti bilan, eng so'nggi faollik bo'yicha tartiblangan.
+
+    Oddiy usul: oxirgi `limit` ta xabarni (eng yangidan) olib, lesson_id
+    bo'yicha birinchi (= eng yangi) uchrashuvini saqlaymiz — shu orqali har
+    bir suhbat guruhining eng so'nggi xabari va vaqti aniqlanadi. Juda ko'p
+    (limit'dan tashqarida qolgan) eski, uzoq vaqt ochilmagan suhbatlar
+    nazariy jihatdan bu ro'yxatga tushmasligi mumkin — hozircha shaxsiy
+    ishlatish miqyosi uchun bu yetarli.
+    """
+    result = await db.execute(
+        select(Message)
+        .where(Message.user_id == current_user.id)
+        .order_by(desc(Message.created_at))
+        .limit(limit)
+    )
+    messages = result.scalars().all()
+
+    seen: set[int | None] = set()
+    latest_per_thread = []
+    for m in messages:
+        if m.lesson_id in seen:
+            continue
+        seen.add(m.lesson_id)
+        latest_per_thread.append(m)
+
+    lesson_ids = [m.lesson_id for m in latest_per_thread if m.lesson_id is not None]
+    titles: dict[int, str] = {}
+    if lesson_ids:
+        lr = await db.execute(select(Lesson.id, Lesson.title).where(Lesson.id.in_(lesson_ids)))
+        titles = {row[0]: row[1] for row in lr.all()}
+
+    conversations = [
+        {
+            "lesson_id": m.lesson_id,
+            "title": titles.get(m.lesson_id, "Umumiy suhbat") if m.lesson_id is not None else "Umumiy suhbat",
+            "last_message": (m.content[:80] + "…") if len(m.content) > 80 else m.content,
+            "last_role": m.role,
+            "last_at": m.created_at,
+        }
+        for m in latest_per_thread
+    ]
+    return {"conversations": conversations}
 
 
 @router.get("/history")

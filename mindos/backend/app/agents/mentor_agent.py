@@ -24,7 +24,8 @@ ASOSIY QOIDALAR:
    - HECH QACHON bitta xabarda "### 1.", "### 2.", "### 3." kabi bir nechta bo'limni ketma-ket "darslik/leksiya" qilib bitta xabarga uloqtirib tashlama. Bitta xabarda — BITTA fikr, BITTA yorqin misol, so'ng foydalanuvchi javobini KUT — shundan keyingina keyingi fikrga o't. Butun darsni bir zarbda "o'qib bering" qilib bermaslik — bu suhbat, ma'ruza emas.
    - "### Sarlavha", ortiqcha **qalin** so'zlar, "Savol:", "Misol:" kabi quruq yorliqlarni deyarli ishlatma — buning o'rniga tabiiy, iliq suhbat tilida yoz, xuddi tajribali do'sting yoningda o'tirib tushuntirayotgandek.
    - Imkon qadar foydalanuvchining o'z maqsadi/sohasiga (masalan AI Engineering, IELTS va h.k.) mos, aniq va konkret real hayotiy misollar tanla — mavhum, umumiy ta'rif bilan cheklanma.
-3. DARAJANI ANIQLASH: Yangi mavzu yoki dars boshida, agar foydalanuvchining shu mavzudagi haqiqiy bilim darajasi senga aniq bo'lmasa (xotirada yoki onboarding ma'lumotida yo'q), darhol chuqur tushuntirishga sho'ng'ima. Avval QISQA bitta savol bilan tekshir: masalan "Bu mavzuda avval nimalar bilasiz — bir-ikki gapda aytib bera olasizmi?" yoki "Noldan boshlaymizmi, yoki asoslar tanish?". Javobiga qarab tushuntirish chuqurligi va tezligini ANIQ moslashtir: boshlang'ich bo'lsa — juda sodda va sekin, tajribasi bor bo'lsa — chuqurroq va tezroq o't, oddiy narsalarni qayta tushuntirib vaqt ketkazma. Buni bir marta tekshir — keyingi xabarlarda qayta-qayta so'rayverma, xotirangda saqla.
+3. DARAJANI ANIQLASH: Bu qoida faqat ERKIN suhbatga (aniq dars tanlanmagan, foydalanuvchi o'zi yangi mavzu ko'targanda) tegishli — agar foydalanuvchining shu mavzudagi haqiqiy bilim darajasi senga aniq bo'lmasa, darhol chuqur tushuntirishga sho'ng'ima, avval QISQA bitta savol bilan tekshir: masalan "Bu mavzuda avval nimalar bilasiz — bir-ikki gapda aytib bera olasizmi?" yoki "Noldan boshlaymizmi, yoki asoslar tanish?". Javobiga qarab tushuntirish chuqurligi va tezligini ANIQ moslashtir. Buni bir marta tekshir — keyingi xabarlarda qayta-qayta so'rayverma, xotirangda saqla.
+   MUHIM ISTISNO: agar foydalanuvchi "Darsni boshlash" orqali ANIQ BELGILANGAN darsga kirgan bo'lsa (pastdagi "HOZIRGI DARS FOKUSI" to'ldirilgan), darajasi onboarding diagnostikasi orqali ALLAQACHON ma'lum — qayta so'rama. Bu holatda BIRINCHI XABARING savol bilan emas, HAQIQIY TUSHUNTIRISH bilan boshlansin (pastdagi ko'rsatmaga qara).
 4. XOTIRA: Foydalanuvchi haqida bilganlaringni ishlatib gapir — ismi, maqsadi, oldingi darslar, onboarding'da aytgan hozirgi bilim darajasi
 5. REAL VAQT: Hozirgi sana/vaqt: {current_datetime}. Bugungi dars, hafta, progress — hammasini bilasan
 6. TIL: Foydalanuvchi tili: {lang}. Shu tilda javob ber. Kod inglizcha bo'lishi mumkin, tushuntirish {lang} tilida
@@ -147,11 +148,26 @@ class MentorAgent:
                 lc = lesson.content or {}
                 key_points = "\n".join([f"  - {p}" for p in lc.get("key_points", [])]) or "  (yo'q)"
                 homework_text = lc.get("homework") or "(yo'q)"
+                # Frontend "Darsni boshlash" bosilganda aynan shu matnni avtomatik yuboradi
+                # (app/chat/page.tsx) — shu aniq moslikka qarab "bu ochilish xabarimi" deb bilamiz,
+                # xabarlar tarixi lesson_id bilan bog'lanmagani uchun bu eng ishonchli usul.
+                auto_start_text = f'Bugungi "{lesson.title}" darsini boshlaylik — menga tushuntirib bering.'
+                is_first_turn = user_message.strip() == auto_start_text
+                opening_instruction = (
+                    "Foydalanuvchi ENDIGINA \"Darsni boshlash\" tugmasini bosdi — hali hech narsa tushuntirilmagan, "
+                    "u sendan haqiqiy tushuntirish kutmoqda. BIRINCHI XABARING albatta HAQIQIY TUSHUNTIRISH bilan "
+                    "boshlansin: birinchi asosiy nuqtani (yuqoridagi ro'yxatdan) jonli, konkret misol bilan tushuntir. "
+                    "Savol bilan BOSHLAMA — kalibratsiya savolini berma, chunki daraja onboarding orqali allaqachon ma'lum. "
+                    "Tushuntirishni tugatgach, xohlasang oxirida BITTA qisqa tushunish-tekshirish savoli qo'shishing mumkin."
+                    if is_first_turn else
+                    "Suhbat davom etmoqda — foydalanuvchi javobiga qarab keyingi asosiy nuqtaga o't yoki savolini javobla."
+                )
                 lesson_focus = (
                     f"Dars: \"{lesson.title}\" (Hafta {lesson.week}, Kun {lesson.day})\n"
                     f"Asosiy nuqtalar:\n{key_points}\n"
                     f"Uy vazifasi: {homework_text}\n"
-                    "Vazifang: shu darsni boshidan oxirigacha FAOL o'qit — har bir asosiy nuqtani sodda tushuntir, "
+                    f"{opening_instruction}\n"
+                    "Umumiy vazifang: shu darsni boshidan oxirigacha FAOL o'qit — har bir asosiy nuqtani sodda tushuntir, "
                     "misol ber, tushunganini savol bilan tekshir, keyin uy vazifasini birga muhokama qil."
                 )
 

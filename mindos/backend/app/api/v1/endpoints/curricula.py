@@ -101,12 +101,17 @@ async def get_curriculum_lessons(
         week = lesson.week
         if week not in weeks:
             weeks[week] = []
+        lesson_content = lesson.content or {}
         weeks[week].append({
             "id": lesson.id,
             "day": lesson.day,
             "title": lesson.title,
             "status": lesson.status,
             "completed_at": lesson.completed_at,
+            # Foydalanuvchi darsni ochmasdan turib ham reja mazmunini ko'rishi uchun
+            # (judge/foydalanuvchi ro'yxatni ko'rib "bu yerda hech narsa yo'q" deb
+            # o'ylamasligi kerak — asosiy nuqtalar shu yerda ham ko'rinadi).
+            "key_points": lesson_content.get("key_points", []),
         })
 
     return {"curriculum_id": curriculum_id, "weeks": weeks}

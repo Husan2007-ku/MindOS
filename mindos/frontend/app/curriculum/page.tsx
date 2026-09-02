@@ -3,11 +3,11 @@ import { useEffect, useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import { apiGet, apiPut } from "@/lib/api";
 import { useRequireAuth } from "@/lib/useRequireAuth";
-import { CheckCircle2, Circle, Pause, Play, Target, BookOpen, Library } from "lucide-react";
+import { CheckCircle2, Circle, Pause, Play, Target, BookOpen, Library, ChevronDown } from "lucide-react";
 import Link from "next/link";
 
 interface Curriculum { id:number; topic:string; level:string; total_weeks:number; status:string; }
-interface Lesson { id:number; day:number; title:string; status:string; }
+interface Lesson { id:number; day:number; title:string; status:string; key_points?:string[]; }
 
 export default function CurriculumPage() {
   const { checking } = useRequireAuth();
@@ -18,6 +18,7 @@ export default function CurriculumPage() {
   const [progress, setProgress] = useState({ completed_lessons:0, total_lessons:0, percentage:0 });
   const [loading, setLoading] = useState(true);
   const [sourceCount, setSourceCount] = useState(0);
+  const [expandedId, setExpandedId] = useState<number|null>(null);
 
   useEffect(() => {
     if (checking) return;
@@ -74,10 +75,24 @@ export default function CurriculumPage() {
                   <div key={week} className="rounded-2xl bg-white border border-deep-100 p-6">
                     <h3 className="font-display text-lg font-semibold text-deep-950 mb-3">Hafta {week}</h3>
                     <div className="space-y-1">{lessons.map(l=>(
-                      <Link key={l.id} href={`/chat?lesson=${l.id}`} className={`flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors ${l.status==="completed"?"bg-green-50":"hover:bg-deep-50"}`}>
-                        {l.status==="completed"?<CheckCircle2 size={18} className="text-green-500 flex-shrink-0"/>:<Circle size={18} className="text-ink-200 flex-shrink-0"/>}
-                        <span className={`text-sm ${l.status==="completed"?"text-ink-400 line-through":"text-ink-900"}`}>Kun {l.day}: {l.title}</span>
-                      </Link>
+                      <div key={l.id} className={`rounded-xl transition-colors ${l.status==="completed"?"bg-green-50":"hover:bg-deep-50"}`}>
+                        <div className="flex items-center gap-3 px-3 py-2.5">
+                          <Link href={`/chat?lesson=${l.id}`} className="flex flex-1 items-center gap-3 min-w-0">
+                            {l.status==="completed"?<CheckCircle2 size={18} className="text-green-500 flex-shrink-0"/>:<Circle size={18} className="text-ink-200 flex-shrink-0"/>}
+                            <span className={`text-sm ${l.status==="completed"?"text-ink-400 line-through":"text-ink-900"}`}>Kun {l.day}: {l.title}</span>
+                          </Link>
+                          {!!l.key_points?.length && (
+                            <button onClick={()=>setExpandedId(expandedId===l.id?null:l.id)} className="flex-shrink-0 rounded-lg p-1 text-ink-300 hover:bg-deep-100 hover:text-ink-700">
+                              <ChevronDown size={16} className={`transition-transform ${expandedId===l.id?"rotate-180":""}`}/>
+                            </button>
+                          )}
+                        </div>
+                        {expandedId===l.id && !!l.key_points?.length && (
+                          <ul className="ml-9 mr-3 mb-3 space-y-1 border-l-2 border-deep-100 pl-3">
+                            {l.key_points!.map((p,i)=><li key={i} className="text-xs text-ink-500">{p}</li>)}
+                          </ul>
+                        )}
+                      </div>
                     ))}</div>
                   </div>
                 ))}</div>

@@ -33,8 +33,8 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <section style={{ paddingTop:"120px", paddingBottom:"80px", paddingLeft:"24px", paddingRight:"24px", maxWidth:"1200px", margin:"0 auto" }}>
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"60px", alignItems:"center" }}>
+      <section style={{ maxWidth:"1200px", margin:"0 auto" }} className="pt-24 pb-16 px-4 md:pt-[120px] md:pb-20 md:px-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 items-center gap-10 md:gap-[60px]">
           <div>
             <div style={{ display:"inline-flex", alignItems:"center", gap:"8px", background:"#FEF3C7", border:"1px solid #FCD34D", borderRadius:"100px", padding:"6px 16px", fontSize:"13px", fontWeight:"600", color:"#92400E", marginBottom:"24px" }}>
               <Zap size={14} color="#D97706" /> Ebbinghaus, 1885 — 140 yillik ilmiy fakt
@@ -87,7 +87,7 @@ export default function LandingPage() {
 
       {/* Stats */}
       <section style={{ background:"#0F2942", padding:"64px 24px" }}>
-        <div style={{ maxWidth:"1200px", margin:"0 auto", display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"32px", textAlign:"center" }}>
+        <div style={{ maxWidth:"1200px", margin:"0 auto", textAlign:"center" }} className="grid grid-cols-1 sm:grid-cols-3 gap-8">
           {[
             { value:"3", label:"AI agent: Mentor, Curriculum, Code" },
             { value:"SM-2", label:"Ilmiy spaced-repetition algoritmi" },
@@ -107,7 +107,7 @@ export default function LandingPage() {
           <h2 style={{ fontSize:"40px", fontWeight:"800", color:"#0F2942", marginBottom:"16px" }}>Oddiy kursdan farqi nima?</h2>
           <p style={{ fontSize:"18px", color:"#6B675D", maxWidth:"500px", margin:"0 auto" }}>MindOS — shunchaki video darslar emas. U sizni o'ylatadi, eslatadi va kuzatib boradi.</p>
         </div>
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"20px" }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {[
             { icon:"🧠", title:"Shaxsiy reja", text:"Maqsad va darajangizga mos 8-16 haftalik o'quv reja" },
             { icon:"💬", title:"Sokratik mentor", text:"AI javob bermaydi — o'ylashga undaydi. Bilim chuqurlashadi." },
@@ -127,7 +127,7 @@ export default function LandingPage() {
       <section style={{ padding:"80px 24px", background:"#F5F2ED" }}>
         <div style={{ maxWidth:"1200px", margin:"0 auto" }}>
           <h2 style={{ fontSize:"36px", fontWeight:"800", color:"#0F2942", textAlign:"center", marginBottom:"48px" }}>Foydalanuvchilar nima deydi</h2>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"20px" }}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {[
               { name:"Aziz T.", role:"Backend dasturchi", text:"2 oyda Python'ni o'rgandim. MindOS meni hech qachon to'g'ridan-to'g'ri javob bermadi — o'zi toptirib o'rgatti." },
               { name:"Malika R.", role:"Ingliz tili o'quvchisi", text:"30 kunlik streak! Duolingo 3 yildan beri ishlatganman, lekin MindOS 2 oyda ko'proq narsani o'rganishimga yordam berdi." },
@@ -156,13 +156,13 @@ export default function LandingPage() {
         <div style={{ maxWidth:"900px", margin:"0 auto", textAlign:"center" }}>
           <h2 style={{ fontSize:"40px", fontWeight:"800", color:"white", marginBottom:"12px" }}>Oddiy narx. Katta natija.</h2>
           <p style={{ color:"#8BA4BC", fontSize:"16px", marginBottom:"48px" }}>7 kun bepul sinab ko'ring. Kredit karta shart emas.</p>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"20px" }}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {[
               { plan:"Free", price:"$0", period:"", features:["1 curriculum","10 xabar/kun","7 kunlik Pro sinov","Spaced repetition"], highlight:false },
               { plan:"Pro", price:"$9", period:"/oy", features:["Cheksiz curriculum","Cheksiz chat","Ovoz input","Progress Agent","Telegram eslatma"], highlight:true },
               { plan:"Team", price:"$29", period:"/oy", features:["5 xodim profili","Admin dashboard","Umumiy progress","Priority support"], highlight:false },
             ].map(({plan,price,period,features,highlight})=>(
-              <div key={plan} style={{ background:highlight?"#D4A024":"rgba(255,255,255,0.05)", borderRadius:"20px", padding:"32px", border:highlight?"none":"1px solid rgba(255,255,255,0.1)", transform:highlight?"scale(1.05)":"none" }}>
+              <div key={plan} style={{ background:highlight?"#D4A024":"rgba(255,255,255,0.05)", borderRadius:"20px", padding:"32px", border:highlight?"none":"1px solid rgba(255,255,255,0.1)" }} className={highlight?"md:scale-105":""}>
                 {highlight&&<div style={{ fontSize:"11px", fontWeight:"700", textTransform:"uppercase", letterSpacing:"2px", color:"#0F2942", marginBottom:"12px" }}>Eng mashhur</div>}
                 <h3 style={{ fontSize:"22px", fontWeight:"700", color:highlight?"#0F2942":"white" }}>{plan}</h3>
                 <div style={{ margin:"12px 0 24px" }}>
@@ -197,7 +197,7 @@ export default function LandingPage() {
       </section>
 
       <footer style={{ borderTop:"1px solid #E5DFD3", padding:"32px 24px" }}>
-        <div style={{ maxWidth:"1200px", margin:"0 auto", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+        <div style={{ maxWidth:"1200px", margin:"0 auto" }} className="flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-left">
           <span style={{ fontSize:"20px", fontWeight:"800", color:"#0F2942" }}>MindOS</span>
           <span style={{ fontSize:"13px", color:"#A8A398" }}>© 2025 MindOS — O'rgan. Esla. O's.</span>
           <div style={{ display:"flex", gap:"24px" }}>

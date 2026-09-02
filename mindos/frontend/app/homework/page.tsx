@@ -33,7 +33,7 @@ export default function HomeworkPage() {
   return (
     <div className="flex min-h-screen bg-paper-100">
       <Sidebar/>
-      <main className="flex-1 overflow-y-auto px-8 py-8">
+      <main className="flex-1 overflow-y-auto px-8 pb-8 pt-20 md:pt-8">
         <div className="mb-8"><h1 className="font-display text-3xl font-bold text-deep-950">Vazifalar</h1><p className="mt-1 text-ink-500">AI tomonidan berilgan vazifalar</p></div>
         {homeworks.length===0?(
           <div className="rounded-3xl bg-white border border-deep-100 p-12 text-center">

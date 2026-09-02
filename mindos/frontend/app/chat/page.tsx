@@ -667,7 +667,7 @@ function ChatPageInner() {
       )}
 
       <main className="flex flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-deep-100 bg-white px-8 py-4">
+        <header className="flex items-center justify-between border-b border-deep-100 bg-white pl-16 pr-8 py-4 md:pl-8">
           <h1 className="font-display text-xl font-bold text-deep-950">Mentor</h1>
           <div className="flex items-center gap-2">
             <button onClick={openVoiceChat}

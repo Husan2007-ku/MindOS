@@ -117,7 +117,7 @@ export default function SpacedRepPage() {
   return (
     <div className="flex min-h-screen bg-paper-100">
       <Sidebar/>
-      <main className="flex flex-1 flex-col items-center justify-center px-8 py-8">
+      <main className="flex flex-1 flex-col items-center justify-center px-8 pb-8 pt-20 md:pt-8">
         {(offline || pendingCount > 0) && (
           <div className="mb-4 flex w-full max-w-lg items-center gap-2 rounded-xl border border-amber-300 bg-amber-100 px-4 py-2.5 text-xs font-medium text-amber-800">
             {offline ? <WifiOff size={14}/> : <RefreshCw size={14}/>}

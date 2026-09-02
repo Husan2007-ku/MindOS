@@ -65,7 +65,7 @@ export default function ProgressPage() {
   return (
     <div className="flex min-h-screen bg-paper-100">
       <Sidebar/>
-      <main className="flex-1 overflow-y-auto px-8 py-8">
+      <main className="flex-1 overflow-y-auto px-8 pb-8 pt-20 md:pt-8">
         <div className="mb-8 flex items-center justify-between">
           <div><h1 className="font-display text-3xl font-bold text-deep-950">Progress</h1><p className="mt-1 text-ink-500">Sizning o'sishingiz</p></div>
           <button onClick={share} className="flex items-center gap-2 rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-semibold text-deep-950 hover:bg-amber-400"><Share2 size={16}/>Ulashish</button>

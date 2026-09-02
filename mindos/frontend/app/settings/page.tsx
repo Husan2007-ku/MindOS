@@ -102,7 +102,7 @@ export default function SettingsPage() {
   return (
     <div style={{ display:"flex",minHeight:"100vh",background:"var(--bg-main)" }}>
       <Sidebar/>
-      <main style={{ flex:1,overflowY:"auto",padding:"32px" }}>
+      <main style={{ flex:1,overflowY:"auto" }} className="p-8 pt-20 md:pt-8">
         <h1 style={{ fontSize:"28px",fontWeight:"800",color:"var(--text-1)",marginBottom:"4px" }}>Sozlamalar</h1>
         <p style={{ fontSize:"14px",color:"var(--text-2)",marginBottom:"32px" }}>Profilingiz va xususiyatlarni sozlang</p>
         <div style={{ maxWidth:"560px" }}>

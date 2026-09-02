@@ -80,7 +80,7 @@ export default function AdminPage() {
   return (
     <div className="flex min-h-screen bg-paper-100">
       <Sidebar />
-      <main className="flex-1 px-8 py-8">
+      <main className="flex-1 px-8 pb-8 pt-20 md:pt-8">
         <h1 className="font-display text-3xl font-bold text-deep-950 mb-8">Admin Panel</h1>
         {error ? (
           <div className="rounded-2xl bg-red-50 border border-red-200 p-6">

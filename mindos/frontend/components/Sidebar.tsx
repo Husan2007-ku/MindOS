@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { LayoutDashboard,MessageCircle,BookOpen,ClipboardCheck,Repeat2,TrendingUp,Settings,LogOut,Flame,Sun,Moon,Library,HelpCircle,ShieldCheck } from "lucide-react";
+import { LayoutDashboard,MessageCircle,BookOpen,ClipboardCheck,Repeat2,TrendingUp,Settings,LogOut,Flame,Sun,Moon,Library,HelpCircle,ShieldCheck,Menu,X } from "lucide-react";
 import { apiGet, clearTokens } from "@/lib/api";
 import { useTheme } from "@/lib/useTheme";
 
@@ -26,11 +26,44 @@ export default function Sidebar() {
   const [xp,setXp]=useState<number|null>(null);
   const [level,setLevel]=useState<number|null>(null);
   const [isAdmin,setIsAdmin]=useState(false);
+  const [mobileOpen,setMobileOpen]=useState(false);
+  // Mobil ekranlarda sidebar berkitilgan drawer sifatida ochiladi — sahifa almashganda
+  // avtomatik yopiladi, aks holda foydalanuvchi har safar qo'lda yopishi kerak bo'lardi.
+  useEffect(()=>{ setMobileOpen(false); },[pathname]);
   useEffect(()=>{ apiGet("/users/me").then(d=>{setStreak(d.streak);setName(d.full_name?.split(" ")[0]||"");setIsAdmin(!!d.is_admin);}).catch(()=>{}); },[]);
   useEffect(()=>{ apiGet("/gamification/me").then(d=>{setXp(d.xp);setLevel(d.level);}).catch(()=>{}); },[]);
   function logout(){ clearTokens(); router.push("/"); }
   return (
-    <aside style={{ display:"flex",height:"100vh",width:"256px",flexDirection:"column",padding:"24px 16px",background:"var(--bg-sidebar)",borderRight:"1px solid var(--border)",flexShrink:0 }}>
+    <>
+      {/* Mobilda sidebar-ni ochish tugmasi — faqat kichik ekranlarda ko'rinadi */}
+      <button
+        onClick={()=>setMobileOpen(true)}
+        aria-label="Menyuni ochish"
+        className="md:hidden"
+        style={{ position:"fixed",top:"12px",left:"12px",zIndex:40,display:mobileOpen?"none":"flex",alignItems:"center",justifyContent:"center",width:"40px",height:"40px",borderRadius:"10px",border:"1px solid var(--border)",background:"var(--bg-sidebar)",color:"var(--text-1)",cursor:"pointer" }}
+      >
+        <Menu size={20}/>
+      </button>
+      {/* Orqa fon (backdrop) — mobilda sidebar ochiq bo'lganda bosilsa yopiladi */}
+      {mobileOpen && (
+        <div
+          onClick={()=>setMobileOpen(false)}
+          className="md:hidden"
+          style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:45 }}
+        />
+      )}
+      <aside
+        className={`md:!static md:!translate-x-0 ${mobileOpen?"translate-x-0":"-translate-x-full"}`}
+        style={{ display:"flex",height:"100vh",width:"256px",flexDirection:"column",padding:"24px 16px",background:"var(--bg-sidebar)",borderRight:"1px solid var(--border)",flexShrink:0,position:"fixed",top:0,left:0,zIndex:50,transition:"transform 0.2s ease",overflowY:"auto" }}
+      >
+        <button
+          onClick={()=>setMobileOpen(false)}
+          aria-label="Menyuni yopish"
+          className="md:hidden"
+          style={{ position:"absolute",top:"16px",right:"16px",background:"transparent",border:"none",color:"var(--text-2)",cursor:"pointer" }}
+        >
+          <X size={20}/>
+        </button>
       <Link href="/dashboard" style={{ display:"block",marginBottom:"24px",padding:"0 8px",textDecoration:"none" }}>
         <span style={{ fontSize:"22px",fontWeight:"800",color:"var(--accent)" }}>MindOS</span>
       </Link>
@@ -68,6 +101,7 @@ export default function Sidebar() {
       <button onClick={logout} style={{ display:"flex",alignItems:"center",gap:"12px",padding:"10px 12px",borderRadius:"12px",border:"none",background:"transparent",cursor:"pointer",fontSize:"14px",fontWeight:"500",color:"var(--text-3)",width:"100%" }}>
         <LogOut size={18}/>Chiqish
       </button>
-    </aside>
+      </aside>
+    </>
   );
 }

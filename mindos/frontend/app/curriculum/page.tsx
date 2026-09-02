@@ -44,7 +44,7 @@ export default function CurriculumPage() {
   return (
     <div className="flex min-h-screen bg-paper-100">
       <Sidebar/>
-      <main className="flex-1 overflow-y-auto px-8 py-8">
+      <main className="flex-1 overflow-y-auto px-8 pb-8 pt-20 md:pt-8">
         <div className="mb-8 flex items-center justify-between"><div><h1 className="font-display text-3xl font-bold text-deep-950">O'quv reja</h1><p className="mt-1 text-ink-500">Sizning shaxsiy o'quv yo'lxaritangiz</p></div>{sourceCount>0 && <Link href="/sources" className="flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-100"><Library size={14}/>{sourceCount} ta manba asosida</Link>}</div>
         {curricula.length===0 ? (
           <div className="rounded-3xl bg-white border border-deep-100 p-12 text-center">

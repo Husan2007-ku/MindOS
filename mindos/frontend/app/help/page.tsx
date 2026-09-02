@@ -68,7 +68,7 @@ export default function HelpPage() {
   return (
     <div className="flex min-h-screen bg-paper-100">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto px-8 py-8">
+      <main className="flex-1 overflow-y-auto px-8 pb-8 pt-20 md:pt-8">
         <div className="mb-8">
           <h1 className="font-display text-3xl font-bold text-deep-950">Ilovadan qanday foydalanish</h1>
           <p className="mt-1 text-ink-500">Maksimal foyda olish uchun har bo'lim nima qilishini bilib oling.</p>

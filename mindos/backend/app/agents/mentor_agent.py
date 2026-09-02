@@ -32,7 +32,7 @@ ASOSIY QOIDALAR:
 7. QAYISH DETEKSIYASI:
    - 3 kun kelmagan bo'lsa: "Sog'indik! Davom etishga tayyormisiz?"
    - 7+ kun kelmagan bo'lsa: "Xush kelibsiz! {days_away} kun bo'libdi — qaytadan isitib olaylikmi?"
-8. DIAGRAM: Murakkab tushuncha uchun Mermaid.js kodi ber: ```mermaid\n...\n```
+8. DIAGRAM: Murakkab tushuncha, jarayon bosqichlari YOKI formula/struktura (masalan "HOP", "PEEL" kabi harflardan tuzilgan formulalar, bosqichma-bosqich jarayon) uchun albatta Mermaid.js diagram/flowchart chizib ber, faqat matn bilan tushuntirib qo'ymang — vizual tasvir tushunishni ancha osonlashtiradi: ```mermaid\n...\n```
 9. KOD: Syntax highlight uchun tilni ko'rsat: ```python\n...\n```
 10. STREAK: Foydalanuvchi streak ini maqtab tur, motivatsiya ber
 
@@ -82,6 +82,41 @@ Foydalanuvchi IELTS Speaking mashqini yoqdi. Sen hozir haqiqiy, qiziqqan suhbatd
 """.strip()
 
 NORMAL_MODE_TEXT = "Oddiy suhbat rejimi — yuqoridagi asosiy qoidalarga amal qil."
+
+# --- Til kursi deteksiyasi (foydalanuvchi fikri: "ingliz tili o'rganyapman,
+# nega faqat o'zbekcha yozasan?") ---
+_LANGUAGE_COURSE_KEYWORDS = {
+    "ingliz": "ingliz (English)", "english": "ingliz (English)", "ielts": "ingliz (English)",
+    "toefl": "ingliz (English)", "rus tili": "rus (Russian)", "arab tili": "arab (Arabic)",
+    "turk tili": "turk (Turkish)", "koreys tili": "koreys (Korean)", "xitoy tili": "xitoy (Chinese)",
+    "nemis tili": "nemis (German)", "fransuz tili": "fransuz (French)",
+}
+
+
+def detect_target_language_course(topic: str | None) -> str | None:
+    """Agar o'quv reja mavzusi bevosita chet TIL o'rganish bo'lsa, o'sha tilni qaytaradi."""
+    if not topic:
+        return None
+    t = topic.lower()
+    for kw, lang_name in _LANGUAGE_COURSE_KEYWORDS.items():
+        if kw in t:
+            return lang_name
+    return None
+
+
+# --- Foydalanuvchi Sokratik savol-javob uslubidan charchagan/norozi bo'lgan
+# signallarni aniqlash — bunday holatda darhol TO'G'RIDAN-TO'G'RI tushuntirishga
+# o'tish kerak, yana savol bilan javob qaytarish emas. ---
+_DIRECTNESS_SIGNALS = (
+    "senmi ustoz", "sen ustozmisan", "o'zing tushuntir", "nega savol beraverasan",
+    "savol berma", "to'g'ridan-to'g'ri tushuntir", "shart emas so'rash",
+    "javobini ayt", "o'zing ayt", "menmi o'rgataman", "kim ustoz",
+)
+
+
+def wants_direct_answer(user_message: str) -> bool:
+    m = user_message.lower()
+    return any(sig in m for sig in _DIRECTNESS_SIGNALS)
 
 
 class MentorAgent:
@@ -134,6 +169,35 @@ class MentorAgent:
         )
         curriculum = curr_result.scalar_one_or_none()
         curriculum_context = f"Mavzu: {curriculum.topic}, Daraja: {curriculum.level}" if curriculum else "Hali o'quv reja yo'q"
+
+        # Til kursi bo'lsa (Ingliz tili/IELTS va h.k.) — asosiy mazmun shu tilda berilishi kerak,
+        # foydalanuvchi interfeys tilida emas. Foydalanuvchi buni aniq talab qilgan edi.
+        target_lang_course = detect_target_language_course(curriculum.topic if curriculum else None)
+        language_course_instruction = ""
+        if target_lang_course:
+            language_course_instruction = (
+                f"\n\nMUHIM — BU TIL O'RGANISH KURSI ({target_lang_course}): Foydalanuvchi shu tilni "
+                f"O'RGANISH uchun keldi — demak asosiy tushuntirish, misollar va mashqlarning katta qismi "
+                f"{target_lang_course} tilida bo'lishi SHART (bu mashqning o'zi). Faqat qisqa meta-izohlar "
+                "(masalan yangi grammatik qoidaning o'zi nima ekanini bir jumlada) foydalanuvchi ona tilida "
+                "bo'lishi mumkin. HECH QACHON butun darsni faqat foydalanuvchi ona tilida o'tkazma — bu "
+                "aynan foydalanuvchi shikoyat qilgan narsa."
+            )
+        curriculum_context += language_course_instruction
+
+        # Foydalanuvchi Sokratik savol-javobdan charchagan/norozi bo'lsa — darhol
+        # to'g'ridan-to'g'ri tushuntirish rejimiga o'tish kerak.
+        directness_override = ""
+        if wants_direct_answer(user_message):
+            directness_override = (
+                "\n\nMUHIM — FOYDALANUVCHI TO'G'RIDAN-TO'G'RI JAVOB/TUSHUNTIRISH TALAB QILMOQDA: "
+                "u sendan savol bilan javob qaytarishingdan charchagan yoki norozi. Bu xabarda VA "
+                "keyingi xabarlarda ham — Sokratik savol bilan boshlama, ORTIQCHA SAVOL BERMA. "
+                "To'g'ridan-to'g'ri, aniq va to'liq tushuntir, xuddi haqiqiy ustoz kabi qat'iy va "
+                "ishonchli gapir. Oxirida ixtiyoriy ravishda bitta tushunish-tekshiruv savoli mumkin, "
+                "lekin javobning o'zini savol bilan almashtirma."
+            )
+        curriculum_context += directness_override
 
         # Foydalanuvchi "Darsni boshlash" orqali kirgan bo'lsa — shu darsni FAOL o'qitish uchun kontekst
         lesson_focus = "Hozircha aniq dars tanlanmagan — umumiy mavzularda yordam ber."

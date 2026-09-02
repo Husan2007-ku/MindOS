@@ -3,9 +3,9 @@ import { useEffect, useRef, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import MessageBubble from "@/components/MessageBubble";
-import { apiGet, apiPut, getAccessToken, API_ROOT } from "@/lib/api";
+import { apiGet, apiPut, apiDelete, getAccessToken, API_ROOT } from "@/lib/api";
 import { useRequireAuth } from "@/lib/useRequireAuth";
-import { Send, Mic, MicOff, Square, Code2, MessageSquare, Lightbulb, BookOpen, Languages, X, Volume2, Loader2, AudioLines, PhoneOff, CheckCircle2 } from "lucide-react";
+import { Send, Mic, MicOff, Square, Code2, MessageSquare, Lightbulb, BookOpen, Languages, X, Volume2, Loader2, AudioLines, PhoneOff, CheckCircle2, PanelLeft, Search, Trash2 } from "lucide-react";
 
 interface Msg { id: string; role: "user"|"assistant"; content: string; }
 
@@ -23,6 +23,8 @@ function ChatPageInner() {
   const [lessonId, setLessonId] = useState<number|null>(null);
   interface ConversationItem { lesson_id: number|null; title: string; last_message: string; last_role: string; last_at: string; }
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
+  const [convSearch, setConvSearch] = useState("");
+  const [panelCollapsed, setPanelCollapsed] = useState(false);
   const [lessonInfo, setLessonInfo] = useState<{id:number; title:string; status?:string}|null>(null);
   const [completingLesson, setCompletingLesson] = useState(false);
   const [practiceMode, setPracticeMode] = useState<"normal"|"speaking_practice">("normal");
@@ -378,6 +380,29 @@ function ChatPageInner() {
     return d.toLocaleDateString("uz-UZ", { day: "2-digit", month: "2-digit" });
   }
 
+  // Suhbatni butunlay o'chirish — mos lesson_id (yoki umumiy suhbat uchun
+  // hech narsa) bilan DELETE /chat/history chaqiradi, faqat o'sha suhbatni
+  // tozalaydi (boshqalarga tegmaydi). Hozir ochiq turgan suhbat o'chirilsa,
+  // umumiy suhbatga qaytariladi.
+  async function deleteConversation(c: ConversationItem, e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!confirm(`"${c.title}" suhbatini butunlay o'chirmoqchimisiz? Bu amalni orqaga qaytarib bo'lmaydi.`)) return;
+    try {
+      const qs = c.lesson_id ? `?lesson_id=${c.lesson_id}` : "";
+      await apiDelete(`/chat/history${qs}`);
+      setConversations(prev => prev.filter(x => x.lesson_id !== c.lesson_id));
+      if (c.lesson_id === lessonId) router.push("/chat");
+    } catch {
+      alert("O'chirishda xatolik yuz berdi");
+    }
+  }
+
+  const filteredConversations = conversations.filter(c => {
+    const q = convSearch.trim().toLowerCase();
+    if (!q) return true;
+    return c.title.toLowerCase().includes(q) || c.last_message.toLowerCase().includes(q);
+  });
+
   useEffect(() => {
     if (!lessonId) { setLessonInfo(null); return; }
     apiGet(`/lessons/${lessonId}`).then(d => setLessonInfo({ id: d.id, title: d.title, status: d.status })).catch(() => {});
@@ -587,32 +612,59 @@ function ChatPageInner() {
 
       {/* Suhbatlar paneli — Claude/ChatGPT'dagi chat ro'yxati kabi: har bir
           dars (yoki umumiy suhbat) alohida qator, bosilganda o'sha suhbatga
-          o'tadi. Foydalanuvchi "chat tarixi qayerda ko'rinadi" deb so'ragan
-          edi — endi shu yerda, ko'rinib turibdi. */}
-      <aside className="hidden w-72 shrink-0 flex-col border-r border-deep-100 bg-white md:flex">
-        <div className="border-b border-deep-100 px-4 py-4">
-          <h2 className="font-display text-base font-bold text-deep-950">Suhbatlar</h2>
+          o'tadi. Qidiruv, yig'ish (collapse) tugmasi va suhbatni o'chirish
+          — hammasi xuddi shu ilova (Claude)dagi kabi. */}
+      {panelCollapsed ? (
+        <div className="hidden w-12 shrink-0 flex-col items-center border-r border-deep-100 bg-white py-4 md:flex">
+          <button onClick={()=>setPanelCollapsed(false)} title="Suhbatlar panelini ochish"
+            className="rounded-lg p-2 text-ink-400 hover:bg-deep-50 hover:text-ink-700">
+            <PanelLeft size={18}/>
+          </button>
         </div>
-        <div className="flex-1 overflow-y-auto">
-          {conversations.length === 0 ? (
-            <p className="px-4 py-6 text-center text-xs text-ink-400">Hali suhbat yo'q</p>
-          ) : conversations.map(c => {
-            const active = c.lesson_id === lessonId;
-            return (
-              <button
-                key={c.lesson_id ?? "general"}
-                onClick={() => router.push(c.lesson_id ? `/chat?lesson=${c.lesson_id}` : "/chat")}
-                className={`flex w-full flex-col gap-0.5 border-b border-deep-50 px-4 py-3 text-left transition-colors ${active ? "bg-deep-50" : "hover:bg-deep-50/60"}`}>
-                <div className="flex items-center justify-between gap-2">
-                  <span className={`truncate text-sm font-medium ${active ? "text-deep-950" : "text-ink-700"}`}>{c.title}</span>
-                  <span className="shrink-0 text-[10px] text-ink-400">{formatConvTime(c.last_at)}</span>
-                </div>
-                <span className="truncate text-xs text-ink-400">{c.last_message}</span>
+      ) : (
+        <aside className="hidden w-72 shrink-0 flex-col border-r border-deep-100 bg-white md:flex">
+          <div className="border-b border-deep-100 px-4 py-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="font-display text-base font-bold text-deep-950">Suhbatlar</h2>
+              <button onClick={()=>setPanelCollapsed(true)} title="Panelni yig'ish"
+                className="rounded-lg p-1.5 text-ink-400 hover:bg-deep-50 hover:text-ink-700">
+                <PanelLeft size={16}/>
               </button>
-            );
-          })}
-        </div>
-      </aside>
+            </div>
+            <div className="relative">
+              <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-300"/>
+              <input value={convSearch} onChange={e=>setConvSearch(e.target.value)} placeholder="Qidirish..."
+                className="w-full rounded-lg border border-deep-100 bg-paper-50 py-1.5 pl-8 pr-2 text-xs text-ink-900 outline-none focus:border-deep-500"/>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {filteredConversations.length === 0 ? (
+              <p className="px-4 py-6 text-center text-xs text-ink-400">
+                {conversations.length === 0 ? "Hali suhbat yo'q" : "Hech narsa topilmadi"}
+              </p>
+            ) : filteredConversations.map(c => {
+              const active = c.lesson_id === lessonId;
+              return (
+                <div key={c.lesson_id ?? "general"} className="group relative border-b border-deep-50">
+                  <button
+                    onClick={() => router.push(c.lesson_id ? `/chat?lesson=${c.lesson_id}` : "/chat")}
+                    className={`flex w-full flex-col gap-0.5 px-4 py-3 pr-9 text-left transition-colors ${active ? "bg-deep-50" : "hover:bg-deep-50/60"}`}>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`truncate text-sm font-medium ${active ? "text-deep-950" : "text-ink-700"}`}>{c.title}</span>
+                      <span className="shrink-0 text-[10px] text-ink-400">{formatConvTime(c.last_at)}</span>
+                    </div>
+                    <span className="truncate text-xs text-ink-400">{c.last_message}</span>
+                  </button>
+                  <button onClick={(e)=>deleteConversation(c,e)} title="Suhbatni o'chirish"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-ink-300 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 group-hover:opacity-100">
+                    <Trash2 size={14}/>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </aside>
+      )}
 
       <main className="flex flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-deep-100 bg-white px-8 py-4">

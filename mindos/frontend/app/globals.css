@@ -17,10 +17,15 @@ body { background-color:var(--bg-main); color:var(--text-1); transition:backgrou
 [data-theme="dark"] .bg-white { background-color:var(--bg-card)!important; }
 [data-theme="dark"] .bg-deep-50 { background-color:var(--bg-hover)!important; }
 [data-theme="dark"] .border-deep-100 { border-color:var(--border)!important; }
-[data-theme="dark"] .text-deep-950,[data-theme="dark"] .text-deep-900,[data-theme="dark"] .text-ink-900,[data-theme="dark"] .text-ink-700 { color:var(--text-1)!important; }
-[data-theme="dark"] .text-ink-500,[data-theme="dark"] .text-ink-400 { color:var(--text-2)!important; }
+[data-theme="dark"] .text-deep-950,[data-theme="dark"] .text-deep-900,[data-theme="dark"] .text-deep-700,[data-theme="dark"] .text-ink-900,[data-theme="dark"] .text-ink-800,[data-theme="dark"] .text-ink-700 { color:var(--text-1)!important; }
+[data-theme="dark"] .text-ink-600,[data-theme="dark"] .text-ink-500,[data-theme="dark"] .text-ink-400 { color:var(--text-2)!important; }
 [data-theme="dark"] .bg-deep-900 { background-color:var(--accent)!important; }
-[data-theme="dark"] input,[data-theme="dark"] textarea { background-color:var(--bg-hover)!important; color:var(--text-1)!important; border-color:var(--border)!important; }
+[data-theme="dark"] input,[data-theme="dark"] textarea,[data-theme="dark"] select { background-color:var(--bg-hover)!important; color:var(--text-1)!important; border-color:var(--border)!important; }
+/* text-deep-700 va text-ink-800/600 ilgari ro'yxatda yo'q edi — bular
+   qorong'i (deep-700 #143850, ink-800/900 yaqin qora) ranglar, shuning
+   uchun bg-white/paper qora fonga o'tganda matn deyarli KO'RINMAY qolardi
+   (qorong'i matn qorong'i fon ustida). Foydalanuvchi aynan shu xatoni
+   ko'rgan edi — endi bular ham och rangga almashtiriladi. */
 ::-webkit-scrollbar { width:5px; }
 ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
 

@@ -174,6 +174,12 @@ class Message(Base):
     content = Column(Text, nullable=False)
     message_type = Column(String(20), default="text")  # text | code | diagram | voice
     tokens_used = Column(Integer, default=0)
+    # Har bir dars uchun ALOHIDA suhbat tarixi — ilgari bu ustun yo'q edi va
+    # foydalanuvchining BARCHA darslari bitta uzluksiz oqimga aralashib
+    # ketardi (ochsa — butun tarix, qaysi darsga tegishli ekani noaniq).
+    # NULL = darsga bog'liq bo'lmagan umumiy suhbat (masalan "Kod" rejimi
+    # yoki "Darsni boshlash"siz to'g'ridan-to'g'ri Mentor'ga yozilgan savol).
+    lesson_id = Column(Integer, ForeignKey("lessons.id", ondelete="SET NULL"), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), default=utcnow)
 
     user = relationship("User", back_populates="messages")

@@ -268,14 +268,25 @@ class MentorAgent:
             mode_instructions=IELTS_SPEAKING_INSTRUCTIONS if mode == "speaking_practice" else NORMAL_MODE_TEXT,
         )
 
-    async def get_short_term_memory(self, user_id: int, limit: int = 20) -> list[dict]:
-        """Oxirgi N ta xabarni olish (short-term memory)"""
-        result = await self.db.execute(
-            select(Message)
-            .where(Message.user_id == user_id)
-            .order_by(desc(Message.created_at))
-            .limit(limit)
-        )
+    async def get_short_term_memory(self, user_id: int, lesson_id: int | None = None, limit: int = 20) -> list[dict]:
+        """
+        Oxirgi N ta xabarni olish (short-term memory) — DARS BO'YICHA AJRATILGAN.
+
+        Ilgari bu funksiya foydalanuvchining BARCHA suhbatlarini (qaysi
+        darsdan qat'i nazar) bitta oqim sifatida OpenAI'ga kontekst qilib
+        yuborardi — natijada 1-darsdagi gaplar 5-darsga aralashib ketardi
+        va 19 xabarlik oyna foydasiz eski mavzular bilan to'lib qolardi.
+        Endi lesson_id ko'rsatilsa faqat o'sha darsning tarixi, aks holda
+        (lesson_id=None) faqat darsga bog'liq bo'lmagan umumiy suhbat olinadi.
+        """
+        query = select(Message).where(Message.user_id == user_id)
+        if lesson_id is not None:
+            query = query.where(Message.lesson_id == lesson_id)
+        else:
+            query = query.where(Message.lesson_id.is_(None))
+        query = query.order_by(desc(Message.created_at)).limit(limit)
+
+        result = await self.db.execute(query)
         messages = result.scalars().all()
         messages.reverse()  # Eskidan yangi tartibda
 
@@ -291,19 +302,20 @@ class MentorAgent:
     ) -> AsyncGenerator[str, None]:
         """Streaming SSE — AI javobini token-by-token qaytarish"""
 
-        # Foydalanuvchi xabarini saqlash
+        # Foydalanuvchi xabarini saqlash — lesson_id bilan, shu dars suhbatiga tegishli deb belgilanadi
         msg = Message(
             user_id=user.id,
             role="user",
             content=user_message,
             message_type=message_type,
+            lesson_id=lesson_id,
         )
         self.db.add(msg)
         await self.db.flush()
 
         # Kontekst tayyorlash — semantik xotira qidiruvi hozirgi savolga asoslanadi
         system_prompt = await self.get_system_prompt(user, user_message, lesson_id=lesson_id, mode=mode)
-        history = await self.get_short_term_memory(user.id, limit=19)  # 20 - yangi xabar = 19
+        history = await self.get_short_term_memory(user.id, lesson_id=lesson_id, limit=19)  # 20 - yangi xabar = 19
 
         messages = [
             {"role": "system", "content": system_prompt},
@@ -340,6 +352,7 @@ class MentorAgent:
             content=full_response,
             message_type=self._detect_response_type(full_response),
             tokens_used=len(full_response.split()),  # Taxminiy
+            lesson_id=lesson_id,
         )
         self.db.add(ai_msg)
 

@@ -3,9 +3,9 @@ import { useEffect, useRef, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import MessageBubble from "@/components/MessageBubble";
-import { apiGet, getAccessToken, API_ROOT } from "@/lib/api";
+import { apiGet, apiPut, getAccessToken, API_ROOT } from "@/lib/api";
 import { useRequireAuth } from "@/lib/useRequireAuth";
-import { Send, Mic, MicOff, Square, Code2, MessageSquare, Lightbulb, BookOpen, Languages, X, Volume2, Loader2, AudioLines, PhoneOff } from "lucide-react";
+import { Send, Mic, MicOff, Square, Code2, MessageSquare, Lightbulb, BookOpen, Languages, X, Volume2, Loader2, AudioLines, PhoneOff, CheckCircle2 } from "lucide-react";
 
 interface Msg { id: string; role: "user"|"assistant"; content: string; }
 
@@ -20,7 +20,8 @@ function ChatPageInner() {
   const { checking } = useRequireAuth();
   const searchParams = useSearchParams();
   const [lessonId, setLessonId] = useState<number|null>(null);
-  const [lessonInfo, setLessonInfo] = useState<{id:number; title:string}|null>(null);
+  const [lessonInfo, setLessonInfo] = useState<{id:number; title:string; status?:string}|null>(null);
+  const [completingLesson, setCompletingLesson] = useState(false);
   const [practiceMode, setPracticeMode] = useState<"normal"|"speaking_practice">("normal");
   const [autoStarted, setAutoStarted] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -58,7 +59,9 @@ function ChatPageInner() {
 
   useEffect(() => {
     const lp = searchParams.get("lesson");
-    if (lp) setLessonId(Number(lp));
+    // lp bo'lmasa ham lessonId'ni null'ga qaytaramiz — aks holda "Mentor"
+    // sahifasiga darssiz kirilganda oldingi darsning suhbati ko'rinib qolardi.
+    setLessonId(lp ? Number(lp) : null);
     if (searchParams.get("mode") === "speaking_practice") setPracticeMode("speaking_practice");
   }, [searchParams]);
 
@@ -332,17 +335,47 @@ function ChatPageInner() {
     };
   }, []);
 
+  // Har bir dars — O'Z suhbat tarixi. Ilgari bu effekt faqat sahifa ochilganda
+  // bir marta ishlar edi (lessonId o'zgarishiga bog'liq emas edi), shu sababli
+  // bitta darsdan ikkinchisiga o'tilganda ham eski xabarlar ekranda qolib
+  // ketardi va ular bir-biriga aralashardi. Endi lessonId o'zgarganda ekran
+  // tozalanadi va faqat o'sha darsga (yoki umumiy suhbatga, lessonId=null
+  // bo'lsa) tegishli tarix qayta yuklanadi.
   useEffect(() => {
     if (checking) return;
-    apiGet("/chat/history?limit=50").then(d => {
+    setLoading(true);
+    setMessages([]);
+    setAutoStarted(false);
+    const qs = lessonId ? `&lesson_id=${lessonId}` : "";
+    apiGet(`/chat/history?limit=50${qs}`).then(d => {
       setMessages(d.messages.map((m: any) => ({ id: String(m.id), role: m.role, content: m.content })));
     }).finally(() => setLoading(false));
-  }, [checking]);
+  }, [checking, lessonId]);
 
   useEffect(() => {
-    if (!lessonId) return;
-    apiGet(`/lessons/${lessonId}`).then(d => setLessonInfo({ id: d.id, title: d.title })).catch(() => {});
+    if (!lessonId) { setLessonInfo(null); return; }
+    apiGet(`/lessons/${lessonId}`).then(d => setLessonInfo({ id: d.id, title: d.title, status: d.status })).catch(() => {});
   }, [lessonId]);
+
+  // Ilgari darsni "tugallangan" deb belgilash FAQAT Bosh sahifadagi tugma
+  // orqali mumkin edi — aynan shu tugma vazifa (Homework) va takrorlash
+  // (SpacedItem) kartochkalarini yaratadigan yagona joy edi. Lekin dars
+  // aslida shu — Mentor chat — sahifasida o'tiladi, shuning uchun ko'p
+  // foydalanuvchi suhbatni tugatib, Bosh sahifaga qaytmasdan chiqib
+  // ketardi va vazifa/takrorlash HECH QACHON yaratilmasdi. Endi shu
+  // tugma to'g'ridan-to'g'ri shu yerda, dars banner'ida ham bor.
+  async function completeCurrentLesson() {
+    if (!lessonInfo || lessonInfo.status === "completed") return;
+    setCompletingLesson(true);
+    try {
+      await apiPut(`/lessons/${lessonInfo.id}/complete`);
+      setLessonInfo(prev => prev ? { ...prev, status: "completed" } : prev);
+    } catch {
+      alert("Darsni tugatishda xatolik yuz berdi. Qayta urinib ko'ring.");
+    } finally {
+      setCompletingLesson(false);
+    }
+  }
 
   useEffect(() => {
     if (!lessonInfo || loading || autoStarted) return;
@@ -551,7 +584,20 @@ function ChatPageInner() {
         {lessonInfo && (
           <div className="flex items-center justify-between border-b border-amber-100 bg-amber-50 px-8 py-2.5 text-sm text-amber-800">
             <span className="flex items-center gap-2"><BookOpen size={15}/> Bugungi dars: <strong>{lessonInfo.title}</strong></span>
-            <button onClick={()=>setLessonInfo(null)} className="rounded-full p-1 hover:bg-amber-100"><X size={14}/></button>
+            <div className="flex items-center gap-2">
+              {lessonInfo.status === "completed" ? (
+                <span className="flex items-center gap-1 rounded-lg bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700">
+                  <CheckCircle2 size={13}/> Tugallangan
+                </span>
+              ) : (
+                <button onClick={completeCurrentLesson} disabled={completingLesson}
+                  title="Vazifa va takrorlash kartochkalari shu tugma bilan yaratiladi"
+                  className="flex items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-deep-950 hover:bg-amber-400 disabled:opacity-50">
+                  <CheckCircle2 size={13}/> {completingLesson ? "Belgilanmoqda..." : "Darsni tugatildi deb belgilash"}
+                </button>
+              )}
+              <button onClick={()=>setLessonInfo(null)} className="rounded-full p-1 hover:bg-amber-100"><X size={14}/></button>
+            </div>
           </div>
         )}
         {practiceMode==="speaking_practice" && (

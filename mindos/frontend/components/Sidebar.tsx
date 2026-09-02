@@ -13,7 +13,7 @@ const NAV=[
   {href:"/sources",label:"Manbalar",icon:Library},
   {href:"/homework",label:"Vazifalar",icon:ClipboardCheck},
   {href:"/spaced-rep",label:"Takrorlash",icon:Repeat2},
-  {href:"/progress",label:"Progress",icon:TrendingUp},
+  {href:"/progress",label:"Natijalar",icon:TrendingUp}, // "Progress" (inglizcha) o'rniga — sidebar'dagi yagona inglizcha yorliq edi, foydalanuvchi buni topolmagan
   {href:"/help",label:"Yordam",icon:HelpCircle},
   {href:"/settings",label:"Sozlamalar",icon:Settings},
 ];

@@ -124,9 +124,9 @@ export default function ProgressPage() {
         <div className="rounded-2xl border border-deep-100 bg-white p-6">
           <div className="flex items-center gap-2 mb-1">
             <Target size={18} className="text-deep-700" />
-            <h3 className="font-semibold text-deep-950">O'zlashtirish darajasi</h3>
+            <h3 className="font-semibold text-deep-950">Ko'nikmalar — o'zlashtirish darajasi</h3>
           </div>
-          <p className="text-xs text-ink-400 mb-4">Tugallanish + vazifa baholari + eslab qolish indeksidan hisoblangan yagona ko'rsatkich</p>
+          <p className="text-xs text-ink-400 mb-4">Har bir fan/yo'nalish bo'yicha alohida ko'nikma sifatida: tugallanish + vazifa baholari + eslab qolish indeksidan hisoblangan yagona ko'rsatkich</p>
           {mastery.length === 0 ? (
             <p className="text-sm text-ink-500">Hali faol o'quv reja yo'q.</p>
           ) : (

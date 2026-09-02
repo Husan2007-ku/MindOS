@@ -329,16 +329,24 @@ async def send_code_message(
 async def get_chat_history(
     limit: int = 50,
     offset: int = 0,
+    lesson_id: int | None = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = await db.execute(
-        select(Message)
-        .where(Message.user_id == current_user.id)
-        .order_by(desc(Message.created_at))
-        .limit(limit)
-        .offset(offset)
-    )
+    """
+    Har bir dars endi O'Z tarixini oladi: lesson_id berilsa faqat o'sha
+    darsning suhbati, aks holda (parametr berilmasa) faqat darsga bog'liq
+    bo'lmagan umumiy suhbat qaytariladi — ilgari bu yerda foydalanuvchining
+    BARCHA darslari birgalikda, tartibsiz aralashgan holda qaytardi.
+    """
+    query = select(Message).where(Message.user_id == current_user.id)
+    if lesson_id is not None:
+        query = query.where(Message.lesson_id == lesson_id)
+    else:
+        query = query.where(Message.lesson_id.is_(None))
+    query = query.order_by(desc(Message.created_at)).limit(limit).offset(offset)
+
+    result = await db.execute(query)
     messages = result.scalars().all()
     messages.reverse()
 
@@ -359,10 +367,23 @@ async def get_chat_history(
 
 @router.delete("/history")
 async def clear_chat_history(
+    lesson_id: int | None = None,
+    all_lessons: bool = False,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    """
+    lesson_id berilsa — faqat o'sha darsning suhbati tozalanadi.
+    all_lessons=true berilsa — foydalanuvchining BARCHA xabarlari (eski
+    xatti-harakat, orqaga moslik uchun saqlangan). Aks holda (ikkalasi
+    ham berilmasa) faqat umumiy (darsga bog'liq bo'lmagan) suhbat tozalanadi.
+    """
     from sqlalchemy import delete
-    await db.execute(delete(Message).where(Message.user_id == current_user.id))
+    query = delete(Message).where(Message.user_id == current_user.id)
+    if lesson_id is not None:
+        query = query.where(Message.lesson_id == lesson_id)
+    elif not all_lessons:
+        query = query.where(Message.lesson_id.is_(None))
+    await db.execute(query)
     await db.commit()
     return {"message": "Chat tarixi tozalandi"}

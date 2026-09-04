@@ -22,17 +22,20 @@ ASOSIY QOIDALAR:
 2. QIZIQARLI TUSHUNTIRISH — ENG MUHIM QOIDA, HAR QANDAY FAN UCHUN (faqat til yoki IELTS emas, matematika, dasturlash, AI, tarix — hammasi uchun):
    - Sen darslikni ovoz chiqarib o'qib beradigan robot emassan — qiziqqan, jonli suhbatdoshsan. Har bir yangi fikrni HAYOTIY misol, kichik hikoya, analogiya yoki kutilmagan savol bilan boch.
    - HECH QACHON bitta xabarda "### 1.", "### 2.", "### 3." kabi bir nechta bo'limni ketma-ket "darslik/leksiya" qilib bitta xabarga uloqtirib tashlama. Bitta xabarda — BITTA fikr, BITTA yorqin misol, so'ng foydalanuvchi javobini KUT — shundan keyingina keyingi fikrga o't. Butun darsni bir zarbda "o'qib bering" qilib bermaslik — bu suhbat, ma'ruza emas.
-   - "### Sarlavha", ortiqcha **qalin** so'zlar, "Savol:", "Misol:" kabi quruq yorliqlarni deyarli ishlatma — buning o'rniga tabiiy, iliq suhbat tilida yoz, xuddi tajribali do'sting yoningda o'tirib tushuntirayotgandek.
+   - "### Sarlavha", ortiqcha **qalin** so'zlar, "Savol:", "Misol:", "Javob:", "Xulosa:" kabi quruq yorliqlarni va "*"/"-" bilan boshlangan ro'yxatlarni DEYARLI ISHLATMA — buning o'rniga tabiiy, iliq suhbat tilida yoz, xuddi tajribali do'sting yoningda o'tirib tushuntirayotgandek.
+   - ANIQ TAQIQLANGAN NAMUNA (buni HECH QACHON takrorlama):
+     "1. Murakkab savollarni tushunish... 2. Javobni tuzish... * Savolga bevosita javob... * Misol keltirish... * Xulosa qilish... 3. Misollar bilan javob berish..." — bu xuddi darslik bobi, jonli suhbat emas. Yozib bo'lgach o'zingdan so'ra: "Bu yerda 2 tadan ortiq fikr yoki birorta raqamlangan/belgili ro'yxat bormi?" — agar javob "ha" bo'lsa, xabarni QAYTA yoz: FAQAT eng muhim BITTA fikrni qoldir, qolganini keyingi xabarlarga qoldir.
    - Imkon qadar foydalanuvchining o'z maqsadi/sohasiga (masalan AI Engineering, IELTS va h.k.) mos, aniq va konkret real hayotiy misollar tanla — mavhum, umumiy ta'rif bilan cheklanma.
-3. DARAJANI ANIQLASH: Bu qoida faqat ERKIN suhbatga (aniq dars tanlanmagan, foydalanuvchi o'zi yangi mavzu ko'targanda) tegishli — agar foydalanuvchining shu mavzudagi haqiqiy bilim darajasi senga aniq bo'lmasa, darhol chuqur tushuntirishga sho'ng'ima, avval QISQA bitta savol bilan tekshir: masalan "Bu mavzuda avval nimalar bilasiz — bir-ikki gapda aytib bera olasizmi?" yoki "Noldan boshlaymizmi, yoki asoslar tanish?". Javobiga qarab tushuntirish chuqurligi va tezligini ANIQ moslashtir. Buni bir marta tekshir — keyingi xabarlarda qayta-qayta so'rayverma, xotirangda saqla.
+3. DARAJANI ANIQLASH VA UNGA MOSLASHISH: Bu qoida faqat ERKIN suhbatga (aniq dars tanlanmagan, foydalanuvchi o'zi yangi mavzu ko'targanda) tegishli — agar foydalanuvchining shu mavzudagi haqiqiy bilim darajasi senga aniq bo'lmasa, darhol chuqur tushuntirishga sho'ng'ima, avval QISQA bitta savol bilan tekshir: masalan "Bu mavzuda avval nimalar bilasiz — bir-ikki gapda aytib bera olasizmi?" yoki "Noldan boshlaymizmi, yoki asoslar tanish?". Javobiga qarab tushuntirish chuqurligi va tezligini ANIQ moslashtir. Buni bir marta tekshir — keyingi xabarlarda qayta-qayta so'rayverma, xotirangda saqla.
    MUHIM ISTISNO: agar foydalanuvchi "Darsni boshlash" orqali ANIQ BELGILANGAN darsga kirgan bo'lsa (pastdagi "HOZIRGI DARS FOKUSI" to'ldirilgan), darajasi onboarding diagnostikasi orqali ALLAQACHON ma'lum — qayta so'rama. Bu holatda BIRINCHI XABARING savol bilan emas, HAQIQIY TUSHUNTIRISH bilan boshlansin (pastdagi ko'rsatmaga qara).
+   DARAJAGA QARAB USLUBNI O'ZGARTIR (quyidagi "HOZIRGI O'QUV REJASI"dagi Daraja'ga qarab): agar daraja "advanced"/"yuqori" bo'lsa — asosiy/bolalarcha ta'riflarga vaqt sarflama, to'g'ridan-to'g'ri nozik farqlar, chuqur nuance va real amaliy holatlarga o't; foydalanuvchi allaqachon bilgan narsani qayta tushuntirib "zerikarli darslik" taassurotini berma. Agar daraja "beginner"/"boshlang'ich" bo'lsa — sekinroq, ko'proq tayanch tushuntirish bilan bor.
 4. XOTIRA: Foydalanuvchi haqida bilganlaringni ishlatib gapir — ismi, maqsadi, oldingi darslar, onboarding'da aytgan hozirgi bilim darajasi
 5. REAL VAQT: Hozirgi sana/vaqt: {current_datetime}. Bugungi dars, hafta, progress — hammasini bilasan
 6. TIL: Foydalanuvchi tili: {lang}. Shu tilda javob ber. Kod inglizcha bo'lishi mumkin, tushuntirish {lang} tilida
 7. QAYISH DETEKSIYASI:
    - 3 kun kelmagan bo'lsa: "Sog'indik! Davom etishga tayyormisiz?"
    - 7+ kun kelmagan bo'lsa: "Xush kelibsiz! {days_away} kun bo'libdi — qaytadan isitib olaylikmi?"
-8. DIAGRAM: Murakkab tushuncha, jarayon bosqichlari YOKI formula/struktura (masalan "HOP", "PEEL" kabi harflardan tuzilgan formulalar, bosqichma-bosqich jarayon) uchun albatta Mermaid.js diagram/flowchart chizib ber, faqat matn bilan tushuntirib qo'ymang — vizual tasvir tushunishni ancha osonlashtiradi: ```mermaid\n...\n```
+8. DIAGRAM — MAJBURIY, IXTIYORIY EMAS: Murakkab tushuncha, jarayon bosqichlari YOKI formula/struktura (masalan "HOP", "PEEL" kabi harflardan tuzilgan formulalar, bosqichma-bosqich jarayon, "javobni qanday tuzish kerak" turidagi ketma-ketlik — masalan "to'g'ridan-to'g'ri javob → misol → xulosa") uchun ALBATTA Mermaid.js diagram/flowchart chizib ber, faqat matn bilan yozib qo'ymang — vizual tasvir tushunishni ancha osonlashtiradi: ```mermaid\n...\n```. Agar foydalanuvchi aniq "rasm/vizual/diagram bilan tushuntir" desa, bu MUTLAQO shart — matn bilan javob berish taqiqlanadi, albatta Mermaid diagram qo'sh.
 9. KOD: Syntax highlight uchun tilni ko'rsat: ```python\n...\n```
 10. STREAK: Foydalanuvchi streak ini maqtab tur, motivatsiya ber
 
@@ -125,8 +128,15 @@ class MentorAgent:
         self.memory_service = MemoryService(db)
         self.source_service = SourceService(db)
 
-    async def get_system_prompt(self, user: User, user_message: str = "", lesson_id: int | None = None, mode: str = "normal") -> str:
-        """Har sessiya uchun kontekstga asoslanib tizim prompti yaratish"""
+    async def get_system_prompt(self, user: User, user_message: str = "", lesson_id: int | None = None, mode: str = "normal") -> tuple[str, bool]:
+        """Har sessiya uchun kontekstga asoslanib tizim prompti yaratish.
+
+        Ikkinchi qiymat (is_lesson_opening) — bu xabar aynan darsning
+        "Darsni boshlash" bilan ochiladigan BIRINCHI xabarimi. Bu eng muhim,
+        ohangni belgilab beruvchi xabar bo'lgani uchun chaqiruvchi buni
+        kuchliroq modelga yo'naltirishi mumkin.
+        """
+        is_lesson_opening = False
         # Real vaqt
         user_tz = pytz.timezone(user.timezone or "Asia/Tashkent")
         now = datetime.now(user_tz)
@@ -217,14 +227,20 @@ class MentorAgent:
                 # xabarlar tarixi lesson_id bilan bog'lanmagani uchun bu eng ishonchli usul.
                 auto_start_text = f'Bugungi "{lesson.title}" darsini boshlaylik — menga tushuntirib bering.'
                 is_first_turn = user_message.strip() == auto_start_text
+                is_lesson_opening = is_first_turn
                 opening_instruction = (
                     "Foydalanuvchi ENDIGINA \"Darsni boshlash\" tugmasini bosdi — hali hech narsa tushuntirilmagan, "
                     "u sendan haqiqiy tushuntirish kutmoqda. BIRINCHI XABARING albatta HAQIQIY TUSHUNTIRISH bilan "
-                    "boshlansin: birinchi asosiy nuqtani (yuqoridagi ro'yxatdan) jonli, konkret misol bilan tushuntir. "
+                    "boshlansin: FAQAT birinchi asosiy nuqtani (yuqoridagi ro'yxatdan — boshqalarini EMAS, faqat "
+                    "birinchisini) jonli, konkret misol bilan tushuntir. QOLGAN nuqtalarni bu xabarga sig'dirishga "
+                    "urinma — ular keyingi xabarlarda, foydalanuvchi javob bergach, birma-bir keladi. Agar birinchi "
+                    "nuqtaning o'zi biror ketma-ketlik/formula/struktura bo'lsa (masalan javobni qanday tuzish "
+                    "kerakligi haqida bosqichlar), buni matn bilan sanab o'tirma — Mermaid diagram chiz (8-qoidaga qara). "
                     "Savol bilan BOSHLAMA — kalibratsiya savolini berma, chunki daraja onboarding orqali allaqachon ma'lum. "
                     "Tushuntirishni tugatgach, xohlasang oxirida BITTA qisqa tushunish-tekshirish savoli qo'shishing mumkin."
                     if is_first_turn else
-                    "Suhbat davom etmoqda — foydalanuvchi javobiga qarab keyingi asosiy nuqtaga o't yoki savolini javobla."
+                    "Suhbat davom etmoqda — foydalanuvchi javobiga qarab keyingi (FAQAT bitta) asosiy nuqtaga o't yoki "
+                    "savolini javobla. Qolgan barcha nuqtalarni bitta xabarga yig'ib tashlama."
                 )
                 lesson_focus = (
                     f"Dars: \"{lesson.title}\" (Hafta {lesson.week}, Kun {lesson.day})\n"
@@ -255,7 +271,7 @@ class MentorAgent:
         lang_names = {"uz": "O'zbek", "ru": "Rus", "en": "Ingliz"}
         lang = lang_names.get(user.lang, "O'zbek")
 
-        return SOCRATIC_SYSTEM.format(
+        prompt = SOCRATIC_SYSTEM.format(
             current_datetime=current_datetime,
             lang=lang,
             days_away=days_away,
@@ -267,6 +283,7 @@ class MentorAgent:
             lesson_focus=lesson_focus,
             mode_instructions=IELTS_SPEAKING_INSTRUCTIONS if mode == "speaking_practice" else NORMAL_MODE_TEXT,
         )
+        return prompt, is_lesson_opening
 
     async def get_short_term_memory(self, user_id: int, lesson_id: int | None = None, limit: int = 20) -> list[dict]:
         """
@@ -314,7 +331,7 @@ class MentorAgent:
         await self.db.flush()
 
         # Kontekst tayyorlash — semantik xotira qidiruvi hozirgi savolga asoslanadi
-        system_prompt = await self.get_system_prompt(user, user_message, lesson_id=lesson_id, mode=mode)
+        system_prompt, is_lesson_opening = await self.get_system_prompt(user, user_message, lesson_id=lesson_id, mode=mode)
         history = await self.get_short_term_memory(user.id, lesson_id=lesson_id, limit=19)  # 20 - yangi xabar = 19
 
         messages = [
@@ -323,11 +340,16 @@ class MentorAgent:
             {"role": "user", "content": user_message},
         ]
 
+        # Dars ochilishi (har dars uchun FAQAT bitta xabar) — eng ko'p ko'rinadigan
+        # va ohangni belgilaydigan xabar bo'lgani uchun kuchliroq modelda; oddiy
+        # davom etayotgan suhbat esa tezroq/arzonroq modelda qoladi.
+        chat_model = settings.OPENAI_MODEL_SMART if is_lesson_opening else settings.OPENAI_MODEL_FAST
+
         # Streaming
         full_response = ""
         try:
             stream = await client.chat.completions.create(
-                model=settings.OPENAI_MODEL_FAST,
+                model=chat_model,
                 messages=messages,
                 temperature=0.7,
                 max_tokens=1000,

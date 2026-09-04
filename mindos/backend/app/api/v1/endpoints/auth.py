@@ -31,8 +31,7 @@ class RegisterRequest(BaseModel):
     password: str
     full_name: str | None = None
     lang: str = "uz"
-    tg_id: str | None = None
-    tg_username: str | None = None
+    tg_token: str | None = None  # bot.py /start'da berilgan imzolangan token (xom tg_id EMAS)
     ref: str | None = None  # referral_code — do'sti tomonidan taklif qilingan bo'lsa
 
 
@@ -79,13 +78,29 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
     )
 
     # Agar foydalanuvchi Telegram bot orqali kelgan bo'lsa (bot.py /start'dagi
-    # ro'yxatdan o'tish linki: ?tg_id=...&tg_username=...) — akkauntni darhol
-    # bog'lab qo'yamiz, alohida "Telegram bog'lash" qadami kerak bo'lmaydi.
-    if data.tg_id:
-        existing_tg = await db.execute(select(User).where(User.telegram_id == data.tg_id))
-        if not existing_tg.scalar_one_or_none():
-            user.telegram_id = data.tg_id
-            user.telegram_username = data.tg_username
+    # ro'yxatdan o'tish linki: ?tg_token=...) — akkauntni darhol bog'lab
+    # qo'yamiz, alohida "Telegram bog'lash" qadami kerak bo'lmaydi. tg_token
+    # imzosi va muddati tekshiriladi — xom tg_id'ga ISHONILMAYDI, aks holda
+    # istalgan kishi /auth/register'ga to'g'ridan-to'g'ri murojaat qilib,
+    # o'zi bilgan biror Telegram ID'ni oldindan "band" qilib qo'yishi mumkin
+    # bo'lardi (keyin o'sha ID'ning haqiqiy egasi botni ochganda, bot uni
+    # begona akkaunt sifatida tanirdi).
+    if data.tg_token:
+        from jose import JWTError, jwt
+        try:
+            tg_payload = jwt.decode(data.tg_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+            if tg_payload.get("type") != "tg_register":
+                raise ValueError("noto'g'ri token turi")
+            tg_id = tg_payload["tg_id"]
+            tg_username = tg_payload.get("tg_username")
+        except (JWTError, KeyError, ValueError):
+            tg_id = None
+            tg_username = None
+        if tg_id:
+            existing_tg = await db.execute(select(User).where(User.telegram_id == tg_id))
+            if not existing_tg.scalar_one_or_none():
+                user.telegram_id = tg_id
+                user.telegram_username = tg_username
 
     # Referral: kod bilan kelgan bo'lsa — bog'lab qo'yamiz. XP bonusi hozir
     # EMAS, faqat bu foydalanuvchi onboarding'ni tugatgach beriladi
@@ -101,7 +116,7 @@ async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
     await db.flush()
 
     from app.services.analytics_service import log_event, EVENT_USER_REGISTERED
-    await log_event(db, EVENT_USER_REGISTERED, user_id=user.id, meta={"lang": user.lang, "via_telegram": bool(data.tg_id)})
+    await log_event(db, EVENT_USER_REGISTERED, user_id=user.id, meta={"lang": user.lang, "via_telegram": bool(data.tg_token)})
 
     try:
         from app.services.email_service import EmailService

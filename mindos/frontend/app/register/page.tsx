@@ -7,8 +7,7 @@ import { setTokens, API_BASE } from "@/lib/api";
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const tgId = searchParams.get("tg_id");
-  const tgUsername = searchParams.get("tg_username");
+  const tgToken = searchParams.get("tg_token");
   const refCode = searchParams.get("ref");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -22,7 +21,7 @@ function RegisterForm() {
       const res = await fetch(`${API_BASE}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, full_name: fullName, lang: "uz", tg_id: tgId, tg_username: tgUsername, ref: refCode }),
+        body: JSON.stringify({ email, password, full_name: fullName, lang: "uz", tg_token: tgToken, ref: refCode }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.detail || "Xatolik yuz berdi"); return; }

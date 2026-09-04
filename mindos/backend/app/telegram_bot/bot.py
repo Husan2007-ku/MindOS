@@ -1,5 +1,6 @@
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from jose import jwt
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 
@@ -62,7 +63,17 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"/help — barcha buyruqlar"
             )
         else:
-            link = f"https://mindos.uz/register?tg_id={telegram_id}&tg_username={telegram_username}"
+            tg_register_token = jwt.encode(
+                {
+                    "tg_id": telegram_id,
+                    "tg_username": telegram_username,
+                    "type": "tg_register",
+                    "exp": datetime.now(timezone.utc) + timedelta(minutes=30),
+                },
+                settings.SECRET_KEY,
+                algorithm=settings.ALGORITHM,
+            )
+            link = f"https://mindos.uz/register?tg_token={tg_register_token}"
             await update.message.reply_text(
                 "MindOS ga xush kelibsiz! 🧠\n\n"
                 "Men sizning shaxsiy AI mentoringizman. Sizga har kuni dars o'taman, "

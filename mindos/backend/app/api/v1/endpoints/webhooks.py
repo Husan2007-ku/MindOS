@@ -43,12 +43,24 @@ async def telegram_webhook(request: Request):
     Telegram bot yangilanishlari shu yerga keladi (setWebhook orqali sozlanadi).
     app/telegram_bot/bot.py'dagi barcha komandalar (/start, /today, /streak...)
     shu orqali ishlaydi — alohida polling worker kerak emas.
+
+    Xavfsizlik: bu endpoint ochiq (auth talab qilmaydi) — Telegram o'zi
+    shunday ishlaydi. Shuning uchun TELEGRAM_WEBHOOK_SECRET sozlangan bo'lsa,
+    Telegram har bir so'rovga qo'shib yuboradigan
+    "X-Telegram-Bot-Api-Secret-Token" header'i tekshiriladi — aks holda
+    istalgan kishi bu URL'ni bilib, soxta Update yuborib, botni istalgan
+    foydalanuvchi nomidan "gapirtirishi" mumkin bo'lardi.
     """
     from telegram import Update
     from app.telegram_bot.runtime import get_application, is_configured
 
     if not is_configured():
         raise HTTPException(status_code=503, detail="Telegram bot sozlanmagan")
+
+    if settings.TELEGRAM_WEBHOOK_SECRET:
+        provided = request.headers.get("x-telegram-bot-api-secret-token")
+        if provided != settings.TELEGRAM_WEBHOOK_SECRET:
+            raise HTTPException(status_code=403, detail="Noto'g'ri webhook tokeni")
 
     application = await get_application()
     data = await request.json()

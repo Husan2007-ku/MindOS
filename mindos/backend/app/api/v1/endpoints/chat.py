@@ -187,6 +187,7 @@ async def text_to_speech(
         if current_user.tts_count_date != today_str:
             current_user.tts_count_date = today_str
             current_user.tts_daily_count = 0
+            await db.commit()
         if current_user.tts_daily_count >= FREE_TTS_DAILY_LIMIT:
             raise HTTPException(
                 status_code=403,
@@ -195,8 +196,9 @@ async def text_to_speech(
                     "Pro rejada ovozli javob cheklovsiz mavjud."
                 ),
             )
-        current_user.tts_daily_count += 1
-        await db.commit()
+        # E'tibor: limit faqat audio MUVAFFAQIYATLI generatsiya qilingandan
+        # KEYIN oshiriladi (pastda) — aks holda OpenAI xizmati vaqtincha
+        # ishlamay qolsa, foydalanuvchi behuda kunlik limitidan judo bo'lardi.
 
     text = data.text.strip()
     if not text:
@@ -237,6 +239,10 @@ async def text_to_speech(
         except Exception as e2:
             logger.error(f"TTS xatosi: {e2}")
             raise HTTPException(status_code=502, detail="Ovozli javob generatsiya qilinmadi")
+
+    if current_user.plan == "free":
+        current_user.tts_daily_count += 1
+        await db.commit()
 
     import io
     return StreamingResponse(io.BytesIO(audio_bytes), media_type="audio/mpeg")

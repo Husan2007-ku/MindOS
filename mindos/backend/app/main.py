@@ -15,7 +15,10 @@ async def lifespan(app: FastAPI):
         if is_configured():
             application = await get_application()
             if settings.TELEGRAM_WEBHOOK_URL:
-                await application.bot.set_webhook(url=settings.TELEGRAM_WEBHOOK_URL)
+                await application.bot.set_webhook(
+                    url=settings.TELEGRAM_WEBHOOK_URL,
+                    secret_token=settings.TELEGRAM_WEBHOOK_SECRET or None,
+                )
     except Exception as e:
         import logging
         logging.getLogger(__name__).error(f"Telegram bot ishga tushmadi: {e}")

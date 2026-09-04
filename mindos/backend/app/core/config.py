@@ -44,6 +44,11 @@ class Settings(BaseSettings):
     # Telegram
     TELEGRAM_BOT_TOKEN: str = ""
     TELEGRAM_WEBHOOK_URL: str = ""
+    # Telegram webhook so'rovlarini tekshirish uchun maxfiy token
+    # (Telegram "X-Telegram-Bot-Api-Secret-Token" header'ida qaytaradi).
+    # Bo'sh qoldirilsa tekshiruv o'chirilgan bo'ladi (eski xatti-harakat) —
+    # production'da buni albatta sozlash tavsiya etiladi.
+    TELEGRAM_WEBHOOK_SECRET: str = ""
 
     # Stripe
     STRIPE_SECRET_KEY: str = ""

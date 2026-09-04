@@ -5,7 +5,7 @@ import Sidebar from "@/components/Sidebar";
 import MessageBubble from "@/components/MessageBubble";
 import { apiGet, apiPut, apiDelete, getAccessToken, API_ROOT } from "@/lib/api";
 import { useRequireAuth } from "@/lib/useRequireAuth";
-import { Send, Mic, MicOff, Square, Code2, MessageSquare, Lightbulb, BookOpen, Languages, X, Volume2, Loader2, AudioLines, PhoneOff, CheckCircle2, PanelLeft, Search, Trash2 } from "lucide-react";
+import { Send, Mic, MicOff, Square, Code2, MessageSquare, Lightbulb, BookOpen, Languages, X, Volume2, Loader2, AudioLines, PhoneOff, CheckCircle2, PanelLeft, Search, Trash2, History } from "lucide-react";
 
 interface Msg { id: string; role: "user"|"assistant"; content: string; }
 
@@ -25,7 +25,11 @@ function ChatPageInner() {
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const [convSearch, setConvSearch] = useState("");
   const [panelCollapsed, setPanelCollapsed] = useState(false);
-  const [lessonInfo, setLessonInfo] = useState<{id:number; title:string; status?:string}|null>(null);
+  // Mobilda "Suhbatlar" paneli (chat tarixi) doim yashirin edi (faqat md:flex) —
+  // foydalanuvchi telefonda oldingi suhbatlarini umuman ko'ra olmasdi. Endi
+  // shu holat orqali alohida overlay-drawer sifatida ochiladi.
+  const [convDrawerOpen, setConvDrawerOpen] = useState(false);
+  const [lessonInfo, setLessonInfo] = useState<{id:number; title:string; status?:string; is_language?:boolean}|null>(null);
   const [completingLesson, setCompletingLesson] = useState(false);
   const [practiceMode, setPracticeMode] = useState<"normal"|"speaking_practice">("normal");
   const [autoStarted, setAutoStarted] = useState(false);
@@ -405,7 +409,7 @@ function ChatPageInner() {
 
   useEffect(() => {
     if (!lessonId) { setLessonInfo(null); return; }
-    apiGet(`/lessons/${lessonId}`).then(d => setLessonInfo({ id: d.id, title: d.title, status: d.status })).catch(() => {});
+    apiGet(`/lessons/${lessonId}`).then(d => setLessonInfo({ id: d.id, title: d.title, status: d.status, is_language: !!d.is_language })).catch(() => {});
   }, [lessonId]);
 
   // Ilgari darsni "tugallangan" deb belgilash FAQAT Bosh sahifadagi tugma
@@ -433,6 +437,13 @@ function ChatPageInner() {
     setAutoStarted(true);
     send(`Bugungi "${lessonInfo.title}" darsini boshlaylik — menga tushuntirib bering.`);
   }, [lessonInfo, loading, autoStarted]);
+
+  // "IELTS Speaking mashqi" faqat chet tili darsiga (yoki umumiy suhbatga)
+  // tegishli — Python/Tarix kabi til bo'lmagan darsga o'tilganda avtomatik
+  // o'chib qolsin, aks holda tugma yo'qolgach ham rejim yopishib qolar edi.
+  useEffect(() => {
+    if (lessonInfo && !lessonInfo.is_language) setPracticeMode("normal");
+  }, [lessonInfo]);
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
@@ -552,6 +563,43 @@ function ChatPageInner() {
     } catch { alert("Mikrofonga ruxsat berilmadi"); }
   }
 
+  // Suhbatlar ro'yxatining o'zagi — desktop panel VA mobil drawer ikkalasi
+  // ham shu funksiyani chaqiradi, shuning uchun ikki joyda alohida-alohida
+  // yozilgan JSX bir-biridan chetlashib ketmaydi. `onNavigate` mobil
+  // drawer'ni bosilgach yopish uchun beriladi (desktopda kerak emas).
+  function renderConvItems(onNavigate?: () => void) {
+    if (filteredConversations.length === 0) {
+      return (
+        <p className="px-4 py-6 text-center text-xs text-ink-400">
+          {conversations.length === 0 ? "Hali suhbat yo'q" : "Hech narsa topilmadi"}
+        </p>
+      );
+    }
+    return filteredConversations.map(c => {
+      const active = c.lesson_id === lessonId;
+      return (
+        <div key={c.lesson_id ?? "general"} className="group relative border-b border-deep-50">
+          <button
+            onClick={() => { router.push(c.lesson_id ? `/chat?lesson=${c.lesson_id}` : "/chat"); onNavigate?.(); }}
+            className={`flex w-full flex-col gap-0.5 px-4 py-3 pr-9 text-left transition-colors ${active ? "bg-deep-50" : "hover:bg-deep-50/60"}`}>
+            <div className="flex items-center justify-between gap-2">
+              <span className={`truncate text-sm font-medium ${active ? "text-deep-950" : "text-ink-700"}`}>{c.title}</span>
+              <span className="shrink-0 text-[10px] text-ink-400">{formatConvTime(c.last_at)}</span>
+            </div>
+            <span className="truncate text-xs text-ink-400">{c.last_message}</span>
+          </button>
+          {/* Telefonda hover degan narsa yo'q — avvalgi "faqat hover'da
+              chiqadi" o'chirish tugmasi mobilda umuman bosib bo'lmas edi.
+              Endi mobilda doim ko'rinadi, desktopda hover bilan chiqadi. */}
+          <button onClick={(e)=>deleteConversation(c,e)} title="Suhbatni o'chirish"
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-ink-300 opacity-100 transition-opacity hover:bg-red-50 hover:text-red-600 md:opacity-0 md:group-hover:opacity-100">
+            <Trash2 size={14}/>
+          </button>
+        </div>
+      );
+    });
+  }
+
   if (checking) return null;
 
   return (
@@ -638,47 +686,60 @@ function ChatPageInner() {
             </div>
           </div>
           <div className="flex-1 overflow-y-auto">
-            {filteredConversations.length === 0 ? (
-              <p className="px-4 py-6 text-center text-xs text-ink-400">
-                {conversations.length === 0 ? "Hali suhbat yo'q" : "Hech narsa topilmadi"}
-              </p>
-            ) : filteredConversations.map(c => {
-              const active = c.lesson_id === lessonId;
-              return (
-                <div key={c.lesson_id ?? "general"} className="group relative border-b border-deep-50">
-                  <button
-                    onClick={() => router.push(c.lesson_id ? `/chat?lesson=${c.lesson_id}` : "/chat")}
-                    className={`flex w-full flex-col gap-0.5 px-4 py-3 pr-9 text-left transition-colors ${active ? "bg-deep-50" : "hover:bg-deep-50/60"}`}>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className={`truncate text-sm font-medium ${active ? "text-deep-950" : "text-ink-700"}`}>{c.title}</span>
-                      <span className="shrink-0 text-[10px] text-ink-400">{formatConvTime(c.last_at)}</span>
-                    </div>
-                    <span className="truncate text-xs text-ink-400">{c.last_message}</span>
-                  </button>
-                  <button onClick={(e)=>deleteConversation(c,e)} title="Suhbatni o'chirish"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-ink-300 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-600 group-hover:opacity-100">
-                    <Trash2 size={14}/>
-                  </button>
-                </div>
-              );
-            })}
+            {renderConvItems()}
           </div>
         </aside>
       )}
 
+      {/* Mobil overlay-drawer: xuddi shu ro'yxat (renderConvItems), lekin
+          yuqoridagi aside "md:flex" bo'lgani uchun mobilda ko'rinmas edi —
+          shu drawer "Tarix" tugmasi bilan ochiladi/yopiladi. */}
+      {convDrawerOpen && (
+        <div className="fixed inset-0 z-40 md:hidden">
+          <div onClick={()=>setConvDrawerOpen(false)} className="absolute inset-0 bg-black/50" />
+          <aside className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col border-r border-deep-100 bg-white">
+            <div className="border-b border-deep-100 px-4 py-4">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="font-display text-base font-bold text-deep-950">Suhbatlar</h2>
+                <button onClick={()=>setConvDrawerOpen(false)} title="Yopish"
+                  className="rounded-lg p-1.5 text-ink-400 hover:bg-deep-50 hover:text-ink-700">
+                  <X size={16}/>
+                </button>
+              </div>
+              <div className="relative">
+                <Search size={14} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-ink-300"/>
+                <input value={convSearch} onChange={e=>setConvSearch(e.target.value)} placeholder="Qidirish..."
+                  className="w-full rounded-lg border border-deep-100 bg-paper-50 py-1.5 pl-8 pr-2 text-xs text-ink-900 outline-none focus:border-deep-500"/>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {renderConvItems(()=>setConvDrawerOpen(false))}
+            </div>
+          </aside>
+        </div>
+      )}
+
       <main className="flex flex-1 flex-col">
         <header className="flex flex-col gap-2 border-b border-deep-100 bg-white pl-16 pr-4 py-3 md:flex-row md:items-center md:justify-between md:pl-8 md:pr-8 md:py-4">
-          <h1 className="font-display text-xl font-bold text-deep-950">Mentor</h1>
+          <div className="flex items-center justify-between gap-2 md:contents">
+            <h1 className="font-display text-xl font-bold text-deep-950">Mentor</h1>
+            {/* Suhbatlar (chat tarixi) paneli md:flex bo'lgani uchun mobilda
+                butunlay yashirin edi — shu tugma orqali drawer sifatida ochiladi. */}
+            <button onClick={()=>setConvDrawerOpen(true)} title="Suhbatlar tarixi"
+              className="flex items-center gap-1.5 rounded-lg border border-deep-100 px-2.5 py-1.5 text-xs font-medium text-ink-500 hover:bg-deep-50 md:hidden">
+              <History size={15}/> Tarix
+            </button>
+          </div>
           <div className="flex flex-wrap items-center gap-2">
-            <button onClick={openVoiceChat}
-              className="flex items-center gap-1.5 rounded-lg border border-deep-100 px-3 py-1.5 text-sm font-medium text-ink-500 hover:bg-deep-50 transition-colors">
-              <AudioLines size={15}/> Ovozli suhbat
-              {plan==="free" && <span className="ml-0.5 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">PRO</span>}
-            </button>
-            <button onClick={()=>setPracticeMode(practiceMode==="speaking_practice"?"normal":"speaking_practice")}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${practiceMode==="speaking_practice"?"bg-amber-500 text-deep-950":"border border-deep-100 text-ink-500 hover:bg-deep-50"}`}>
-              <Languages size={15}/> IELTS Speaking mashqi
-            </button>
+            {/* Dasturlash, tarix va h.k. darslarda bu tugma keraksiz edi — endi
+                faqat chet tili darsi (yoki dars tanlanmagan umumiy suhbat)da
+                ko'rinadi. */}
+            {(!lessonInfo || lessonInfo.is_language) && (
+              <button onClick={()=>setPracticeMode(practiceMode==="speaking_practice"?"normal":"speaking_practice")}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${practiceMode==="speaking_practice"?"bg-amber-500 text-deep-950":"border border-deep-100 text-ink-500 hover:bg-deep-50"}`}>
+                <Languages size={15}/> IELTS Speaking mashqi
+              </button>
+            )}
             <div className="flex gap-1 rounded-xl bg-deep-50 p-1">
               {[{ m:"chat" as const, icon:MessageSquare, label:"Suhbat"}, {m:"code" as const, icon:Code2, label:"Kod"}].map(({m,icon:Icon,label})=>(
                 <button key={m} onClick={()=>setMode(m)}
@@ -785,6 +846,13 @@ function ChatPageInner() {
               <textarea value={input} onChange={e=>setInput(e.target.value)} rows={1} placeholder="Xabar yozing..."
                 onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send(input,mode==="code"?codeInput:undefined);}}}
                 className="flex-1 resize-none rounded-xl border border-deep-100 px-4 py-3 text-ink-900 placeholder:text-ink-300 focus:border-deep-500 focus:outline-none focus:ring-2 focus:ring-deep-100"/>
+              {mode==="chat"&&(
+                <button onClick={openVoiceChat} title="Ovozli suhbat (uzluksiz)"
+                  className="relative rounded-xl border border-deep-100 bg-white p-3 text-ink-500 hover:bg-deep-50 transition-colors">
+                  <AudioLines size={20}/>
+                  {plan==="free" && <span className="absolute -right-1 -top-1 rounded-full bg-amber-400 px-1 text-[9px] font-bold text-deep-950">PRO</span>}
+                </button>
+              )}
               {mode==="chat"&&(
                 <button onClick={recording?()=>{recorderRef.current?.stop();setRecording(false);}:startRec} disabled={streaming}
                   className={`rounded-xl p-3 transition-colors ${recording?"bg-red-100 text-red-600":"border border-deep-100 bg-white text-ink-500 hover:bg-deep-50"}`}>

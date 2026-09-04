@@ -81,6 +81,20 @@ async def get_lesson(
     if not lesson:
         raise HTTPException(status_code=404, detail="Dars topilmadi")
 
+    # Frontend'da "IELTS Speaking mashqi" tugmasi hamma fan uchun (Python,
+    # Tarix va h.k.) doim ko'rinib, foydalanuvchini chalg'itayotgan edi —
+    # bu tugma faqat CHET TILI o'rganilayotganda mantiqiy. Curriculum
+    # mavzusida struktura bo'lmagani (faqat erkin matn `topic`) uchun
+    # oddiy kalit so'z evristikasi bilan aniqlanadi.
+    topic_result = await db.execute(select(Curriculum.topic).where(Curriculum.id == lesson.curriculum_id))
+    topic = topic_result.scalar_one_or_none() or ""
+    LANGUAGE_KEYWORDS = [
+        "ingliz", "english", "ielts", "toefl", "til o'rgan", " tili", "tilini",
+        "nemis", "german", "fransuz", "french", "arab tili", "rus tili",
+        "koreys", "korean", "xitoy tili", "chinese", "ispan", "spanish", "language",
+    ]
+    is_language = any(kw in topic.lower() for kw in LANGUAGE_KEYWORDS)
+
     return {
         "id": lesson.id,
         "curriculum_id": lesson.curriculum_id,
@@ -90,6 +104,8 @@ async def get_lesson(
         "content": lesson.content,
         "status": lesson.status,
         "completed_at": lesson.completed_at,
+        "curriculum_topic": topic,
+        "is_language": is_language,
     }
 
 
